@@ -2,7 +2,7 @@ window.EndoRPG = {
   init(G) {
     'use strict';
     const D = window.ENDO_RPG;
-    const W = D.world;
+    let W = D.world;
     const S = () => G.getState();
     const { el, esc } = G;
 
@@ -36,7 +36,7 @@ window.EndoRPG = {
       if (r && r.cleared && typeof r.cleared === 'object') {
         Object.keys(r.cleared).forEach((k) => { if (/^\d+:[a-z0-9_-]+$/i.test(k)) out.cleared[k] = 1; });
       }
-      if (r && r.pos && isNum(r.pos.x) && isNum(r.pos.y)) out.pos = { x: r.pos.x, y: r.pos.y };
+      if (r && r.pos && isNum(r.pos.x) && isNum(r.pos.y)) out.pos = { x: r.pos.x, y: r.pos.y, f: isNum(r.pos.f) ? r.pos.f : 1 };
       state.rpg = out;
       const spent = Object.values(out.skills).reduce((a, b) => a + b, 0);
       if (spent > levelFor(state.xp) - 1) out.skills = {};
@@ -333,16 +333,35 @@ window.EndoRPG = {
     }
 
     // ---------- world ----------
-    const floorGrid = new Int16Array(W.w * W.h).fill(-1);
-    const solid = new Uint8Array(W.w * W.h).fill(1);
-    const fill = (rc, idx) => { for (let y = rc.y; y < rc.y + rc.h; y++) for (let x = rc.x; x < rc.x + rc.w; x++) { floorGrid[y * W.w + x] = idx; solid[y * W.w + x] = 0; } };
-    W.rooms.forEach((rc, i) => fill(rc, i));
-    W.doors.forEach((d) => fill(d, 0));
-    W.decor.forEach((d) => { if (d.solid !== false) for (let y = d.y; y < d.y + d.h; y++) for (let x = d.x; x < d.x + d.w; x++) solid[y * W.w + x] = 1; });
+    // Floor 1 is D.world (ED, ICU, and shared services). Other days use D.floors[day].
+    function floorDef(day) {
+      if (day === 1 || !day) return D.world;
+      const f = D.floors && D.floors[day];
+      if (f) return f;
+      console.warn(`No floor plan for Day ${day} in content/rpg-data.js; borrowing Floor 2's.`);
+      return D.floors[2];
+    }
+    let floorGrid;
+    let solid;
+    const gridCache = new Map();
+    function useFloor(day) {
+      W = floorDef(day);
+      if (!gridCache.has(W)) {
+        const fg = new Int16Array(W.w * W.h).fill(-1);
+        const so = new Uint8Array(W.w * W.h).fill(1);
+        const fill = (rc, idx) => { for (let y = rc.y; y < rc.y + rc.h; y++) for (let x = rc.x; x < rc.x + rc.w; x++) { fg[y * W.w + x] = idx; so[y * W.w + x] = 0; } };
+        W.rooms.forEach((rc, i) => fill(rc, i));
+        W.doors.forEach((d) => fill(d, 0));
+        W.decor.forEach((d) => { if (d.solid !== false) for (let y = d.y; y < d.y + d.h; y++) for (let x = d.x; x < d.x + d.w; x++) so[y * W.w + x] = 1; });
+        gridCache.set(W, { fg, so });
+      }
+      ({ fg: floorGrid, so: solid } = gridCache.get(W));
+    }
+    useFloor(1);
     const isFloor = (x, y) => x >= 0 && y >= 0 && x < W.w && y < W.h && floorGrid[y * W.w + x] >= 0;
     const blocked = (x, y) => { const tx = Math.floor(x); const ty = Math.floor(y); return tx < 0 || ty < 0 || tx >= W.w || ty >= W.h || solid[ty * W.w + tx] === 1; };
 
-    // Each rotation day is a floor. Day 1 uses the base cast; later days recast the station NPCs from their content's `cast`.
+    // Each rotation day is a floor with its own map. Floor 1 uses its own cast; later floors fill their station slots from the day's `cast`.
     const dayRec = (id) => S().days[id] || { stations: {}, completed: false };
     const finished = (id) => dayRec(id).completed || G.CONTENT[id].stations.every((s) => dayRec(id).stations[s.id]?.done);
     const nextDay = () => G.DAYS.find((d) => G.isUnlocked(d.id) && !finished(d.id));
@@ -352,9 +371,10 @@ window.EndoRPG = {
       return nextDay()?.id || 1;
     }
     function floorNpcs(day) {
-      if (day === 1) return W.npcs;
+      const F = floorDef(day);
+      if (F === D.world) return F.npcs;
       const cast = G.CONTENT[day].cast || {};
-      return W.npcs.flatMap((n) => {
+      return F.npcs.flatMap((n) => {
         if (n.act.type !== 'station') return [n];
         const c = cast[n.id];
         return c ? [{ ...n, ...c, act: { type: 'station', day, station: c.station } }] : [];
@@ -389,13 +409,15 @@ window.EndoRPG = {
       const info = levelInfo(st.xp);
       const pts = skillPoints();
       const day = floorDay();
+      useFloor(day);
       const NPCS = floorNpcs(day);
+      const TH = W.theme || D.world.theme;
       document.body.classList.add('in-world');
       G.app.innerHTML = `<div class="world" id="world">
         <canvas id="wc" aria-label="Hospital map. Use arrow keys or tap to move."></canvas>
         <div class="hud">
           <div class="hud-pill"><b>Lv ${info.level}</b><span class="hud-bar"><i style="width:${info.pct}%"></i></span><span>🪙 ${r.coins}</span></div>
-          <div class="hud-floor">Floor ${day} · ${esc(G.DAYS[day - 1].title)}</div>
+          <div class="hud-floor">Floor ${day} · ${esc(W.name)} · ${esc(G.DAYS[day - 1].title)}</div>
           <div class="hud-btns">
             <a class="hud-btn" href="#/character" aria-label="Character, skills and gear">🎒${pts > 0 ? `<i class="dot">${pts}</i>` : ''}</a>
             <a class="hud-btn" href="#/days" aria-label="Rotation list">📋</a>
@@ -414,8 +436,10 @@ window.EndoRPG = {
       const joy = world.querySelector('.joy');
       const knob = world.querySelector('.joy-knob');
 
-      const player = Object.assign({ x: W.spawn.x, y: W.spawn.y }, r.pos || {});
-      if (blocked(player.x, player.y)) Object.assign(player, W.spawn);
+      // Positions are remembered per floor; arriving on a different floor puts you at its elevator.
+      const start = r.pos && r.pos.f === day ? r.pos : r.pos ? (W.arrive || W.spawn) : W.spawn;
+      const player = { x: start.x, y: start.y };
+      if (blocked(player.x, player.y)) Object.assign(player, { x: W.spawn.x, y: W.spawn.y });
       let T = 44;
       let vw = 0;
       let vh = 0;
@@ -487,6 +511,39 @@ window.EndoRPG = {
             c2d.fillStyle = '#b91c1c'; c2d.beginPath(); c2d.moveTo(x + T * 0.2, y); c2d.lineTo(x + T * 0.8, y); c2d.lineTo(x + T * 0.8, y + T * 0.9); c2d.lineTo(x + T * 0.5, y + T * 0.7); c2d.lineTo(x + T * 0.2, y + T * 0.9); c2d.closePath(); c2d.fill();
             c2d.fillStyle = '#fbbf24'; c2d.beginPath(); c2d.arc(x + T * 0.5, y + T * 0.35, T * 0.12, 0, Math.PI * 2); c2d.fill();
             break;
+          case 'fridge':
+            c2d.fillStyle = '#e2e8f0'; rr(x + p / 2, y, w - p, h - p / 2, T * 0.08); c2d.fill();
+            c2d.strokeStyle = '#94a3b8'; c2d.lineWidth = 2; c2d.stroke();
+            c2d.fillStyle = '#7dd3fc'; rr(x + p * 2, y + p * 2, w - p * 4, h * 0.45, T * 0.05); c2d.fill();
+            c2d.fillStyle = '#64748b'; c2d.fillRect(x + w - p * 3, y + h * 0.62, p, h * 0.22);
+            break;
+          case 'whiteboard':
+            c2d.fillStyle = '#94a3b8'; rr(x, y + p, w, h * 0.62, T * 0.05); c2d.fill();
+            c2d.fillStyle = '#ffffff'; rr(x + p, y + p * 2, w - 2 * p, h * 0.62 - 2 * p, T * 0.04); c2d.fill();
+            c2d.strokeStyle = '#2563eb'; c2d.lineWidth = 2; c2d.beginPath();
+            c2d.moveTo(x + p * 3, y + h * 0.45); c2d.lineTo(x + w * 0.35, y + h * 0.3); c2d.lineTo(x + w * 0.55, y + h * 0.42); c2d.stroke();
+            c2d.strokeStyle = '#dc2626'; c2d.beginPath(); c2d.moveTo(x + w * 0.65, y + h * 0.3); c2d.lineTo(x + w - p * 3, y + h * 0.3); c2d.stroke();
+            break;
+          case 'sofa':
+            c2d.fillStyle = '#7c6a9a'; rr(x, y + p, w, h - p, T * 0.2); c2d.fill();
+            c2d.fillStyle = '#9d8bbd'; for (let i = 0; i < d.w; i++) { rr(x + i * T + p, y + p * 2.5, T - 2 * p, h * 0.5, T * 0.12); c2d.fill(); }
+            break;
+          case 'chairs':
+            for (let i = 0; i < d.w; i++) {
+              c2d.fillStyle = '#64748b'; rr(x + i * T + p, y + p, T - 2 * p, h * 0.35, T * 0.08); c2d.fill();
+              c2d.fillStyle = '#93a3c3'; rr(x + i * T + p, y + h * 0.4, T - 2 * p, h * 0.45, T * 0.1); c2d.fill();
+            }
+            break;
+          case 'exam':
+            c2d.fillStyle = '#475569'; rr(x + p, y + h * 0.55, w - 2 * p, h * 0.35, T * 0.06); c2d.fill();
+            c2d.fillStyle = '#5eead4'; rr(x + p / 2, y + p, w - p, h * 0.6, T * 0.14); c2d.fill();
+            c2d.fillStyle = '#f8fafc'; rr(x + w * 0.15, y + p * 2, w * 0.7, h * 0.4, T * 0.08); c2d.fill();
+            break;
+          case 'sink':
+            c2d.fillStyle = '#cbd5e1'; rr(x + p, y + p, w - 2 * p, h - 2 * p, T * 0.12); c2d.fill();
+            c2d.fillStyle = '#93c5fd'; c2d.beginPath(); c2d.ellipse(x + w / 2, y + h * 0.55, w * 0.28, h * 0.2, 0, 0, Math.PI * 2); c2d.fill();
+            c2d.fillStyle = '#64748b'; c2d.fillRect(x + w / 2 - 2, y + p * 1.5, 4, h * 0.2);
+            break;
           case 'mat':
             c2d.fillStyle = 'rgba(239,68,68,.18)'; rr(x, y, w, h, T * 0.3); c2d.fill();
             c2d.strokeStyle = 'rgba(239,68,68,.45)'; c2d.lineWidth = 3; c2d.beginPath(); c2d.arc(x + w / 2, y + h / 2, Math.min(w, h) * 0.3, 0, Math.PI * 2); c2d.stroke();
@@ -533,7 +590,7 @@ window.EndoRPG = {
 
       function draw(t) {
         c2d.setTransform(dpr, 0, 0, dpr, 0, 0);
-        c2d.fillStyle = '#0e1830';
+        c2d.fillStyle = TH.void;
         c2d.fillRect(0, 0, vw, vh);
         const ww = W.w * T;
         const wh = W.h * T;
@@ -556,15 +613,15 @@ window.EndoRPG = {
               let edge = false;
               for (let dy = -1; dy <= 1 && !edge; dy++) for (let dx = -1; dx <= 1; dx++) if (isFloor(x + dx, y + dy)) { edge = true; break; }
               if (edge) {
-                c2d.fillStyle = '#2f4166'; c2d.fillRect(x * T, y * T, T + 0.5, T + 0.5);
-                c2d.fillStyle = '#425887'; c2d.fillRect(x * T, y * T, T + 0.5, T * 0.32);
+                c2d.fillStyle = TH.wall; c2d.fillRect(x * T, y * T, T + 0.5, T + 0.5);
+                c2d.fillStyle = TH.wallTop; c2d.fillRect(x * T, y * T, T + 0.5, T * 0.32);
               }
             }
           }
         }
         W.rooms.forEach((rc) => {
           if (!rc.name) return;
-          c2d.fillStyle = 'rgba(30,41,59,.55)';
+          c2d.fillStyle = TH.label;
           c2d.font = `800 ${Math.round(T * 0.3)}px system-ui, sans-serif`;
           c2d.textAlign = 'left'; c2d.textBaseline = 'top';
           c2d.fillText(rc.name.toUpperCase(), rc.x * T + T * 0.2, (rc.y + rc.h) * T - T * 0.45);
@@ -671,13 +728,13 @@ window.EndoRPG = {
         const dt = Math.min(0.05, (now - last) / 1000);
         last = now;
         update(dt);
-        if (G.net()) G.net().worldTick(player, now);
+        if (G.net()) G.net().worldTick(player, now, day);
         draw(now);
         raf = requestAnimationFrame(frame);
       }
 
       function persist() {
-        S().rpg.pos = { x: Math.round(player.x * 100) / 100, y: Math.round(player.y * 100) / 100 };
+        S().rpg.pos = { x: Math.round(player.x * 100) / 100, y: Math.round(player.y * 100) / 100, f: day };
         G.save();
       }
 
@@ -709,6 +766,8 @@ window.EndoRPG = {
             const id = +b.dataset.floor;
             S().rpg.floor = id;
             persist();
+            const to = floorDef(id).arrive || floorDef(id).spawn;
+            S().rpg.pos = { x: to.x, y: to.y, f: id };
             G.toast(`🛗 Floor ${id}: ${esc(G.DAYS[id - 1].title)}`, 'good');
             viewWorld();
           };
@@ -733,7 +792,9 @@ window.EndoRPG = {
             const here = d.id === day;
             const status = here ? 'You are here' : !G.hasContent(d.id) ? 'Under construction' : !open ? `Complete Day ${d.id - 1} first` : dayRec(d.id).completed ? 'Complete ✓' : 'Open ▸';
             const tag = open && !here ? 'button' : 'div';
-            return `<${tag} class="floor ${here ? 'here' : ''} ${open ? '' : 'off'}" ${tag === 'button' ? `data-floor="${d.id}"` : ''}><b>${d.id}</b><span>${d.badge.icon} ${esc(d.title)}</span><small>${status}</small></${tag}>`;
+            const plan = d.id === 1 ? D.world : D.floors && D.floors[d.id];
+            const where = plan ? `<em>${esc(plan.name)}</em>` : '';
+            return `<${tag} class="floor ${here ? 'here' : ''} ${open ? '' : 'off'}" ${tag === 'button' ? `data-floor="${d.id}"` : ''}><b>${d.id}</b><span>${d.badge.icon} ${esc(d.title)}${where}</span><small>${status}</small></${tag}>`;
           }).join('')}</div>`;
         }
         return '';
@@ -846,7 +907,7 @@ window.EndoRPG = {
       raf = requestAnimationFrame(frame);
       if (!r.seenIntro) {
         const jordan = NPCS.find((n) => n.act.type === 'tutorial');
-        setTimeout(() => { if (canvas.isConnected) openDialog(jordan); }, 400);
+        if (jordan) setTimeout(() => { if (canvas.isConnected) openDialog(jordan); }, 400);
       }
       Object.assign(debug, { player, interact: (id) => openDialog(NPCS.find((n) => n.id === id)) });
     }

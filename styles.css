@@ -308,6 +308,7 @@ button.floor { width: 100%; border: 1px solid var(--line); color: inherit; font:
 button.floor:hover { border-color: var(--accent); }
 .floor.off { opacity: .5; }
 .floor small { color: var(--muted); }
+.floor em { display: block; font-style: normal; font-size: .75rem; color: var(--muted); }
 .enter { margin-bottom: 6px; }
 
 /* ---------- RPG: stations ---------- */

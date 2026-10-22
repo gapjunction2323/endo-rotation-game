@@ -237,11 +237,24 @@ window.EndoNet = {
     let onlineCount = 0;
     let lastPing = 0;
     let pinging = false;
-    function worldTick(player, now) {
-      if (!signedIn() || pinging || now - lastPing < 2500) return;
+    // Servers that haven't run supabase/add-floors.sql only have the two-argument ping; fall back to it once.
+    let floorPing = true;
+    let pingFloor = null;
+    function worldTick(player, now, floor) {
+      if (!signedIn() || pinging) return;
+      if (floor !== pingFloor) { pingFloor = floor; others.clear(); lastPing = 0; }
+      if (now - lastPing < 2500) return;
       lastPing = now;
       pinging = true;
-      rpc('ping', { p_x: Math.round(player.x * 100) / 100, p_y: Math.round(player.y * 100) / 100 })
+      const args = { p_x: Math.round(player.x * 100) / 100, p_y: Math.round(player.y * 100) / 100 };
+      const call = floorPing
+        ? rpc('ping', { ...args, p_floor: floor || 1 }).catch((e) => {
+          if (e.status !== 404) throw e;
+          floorPing = false;
+          return rpc('ping', args);
+        })
+        : rpc('ping', args);
+      call
         .then((rows) => {
           const seen = new Set();
           (rows || []).forEach((r) => {

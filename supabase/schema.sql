@@ -14,6 +14,7 @@ create table if not exists public.players (
   guild_id uuid,
   x real,
   y real,
+  floor int,
   seen_at timestamptz,
   created_at timestamptz not null default now()
 );
@@ -101,6 +102,7 @@ create table if not exists public.listings (
 );
 
 create index if not exists players_seen_idx on public.players (seen_at);
+alter table public.players add column if not exists floor int;
 create index if not exists guild_msgs_guild_idx on public.guild_msgs (guild_id, id desc);
 create index if not exists raid_hits_raid_idx on public.raid_hits (raid_id, player_id);
 create index if not exists listings_status_idx on public.listings (status, created_at desc);
@@ -176,6 +178,19 @@ begin
   return query
     select p.id, p.name, p.avatar, p.level, p.x, p.y from players p
     where p.id <> auth.uid() and p.seen_at > now() - interval '30 seconds' and p.x is not null;
+end $$;
+
+-- Floor-aware presence: each rotation day is its own hospital floor, so players only see others on the same floor.
+create or replace function public.ping(p_x real, p_y real, p_floor int)
+returns table (id uuid, name text, avatar text, level int, x real, y real)
+language plpgsql security definer set search_path = public as $$
+#variable_conflict use_column
+begin
+  update players set x = p_x, y = p_y, floor = p_floor, seen_at = now() where players.id = auth.uid();
+  return query
+    select p.id, p.name, p.avatar, p.level, p.x, p.y from players p
+    where p.id <> auth.uid() and p.seen_at > now() - interval '30 seconds' and p.x is not null
+      and coalesce(p.floor, 1) = coalesce(p_floor, 1);
 end $$;
 
 create or replace function public.touch() returns void
@@ -391,7 +406,7 @@ $$;
 
 -- ---------- function access ----------
 revoke execute on all functions in schema public from anon, public;
-grant execute on function public.my_guild_id(), public.ping(real, real), public.touch(), public.my_guild(),
+grant execute on function public.my_guild_id(), public.ping(real, real), public.ping(real, real, int), public.touch(), public.my_guild(),
   public.create_guild(text, text), public.join_guild(text), public.leave_guild(),
   public.raid_current(text), public.raid_hit(uuid, int), public.raid_claim(uuid),
   public.duel_create(uuid), public.duel_submit(uuid, int), public.duel_decline(uuid), public.duel_claim(uuid),

@@ -19,7 +19,7 @@ window.ENDO_CONTENT[2] = {
     sam: { station: 'cabinet',
       lines: ['The insulin fridge is a mess. Can you match each drug to how it works before the morning pass?'] },
     noor: { station: 'skin',
-      lines: ['Dermatology left a stack of photos in the library. Diabetes or thyroid? Ten cards, no peeking.'] },
+      lines: ['I pulled ten photos from this week\'s clinic. Diabetes or thyroid? Sort them before my next patient.'] },
     carrel: { station: 'pearls',
       lines: ['Day 2 rapid-fire synthesis. Lock in the long game.'] },
     okafor: { station: 'boss',

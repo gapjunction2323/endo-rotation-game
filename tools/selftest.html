@@ -268,6 +268,8 @@ document.getElementById('f').addEventListener('load', async function run() {
     await sleep(100);
     const floorLabel = doc().querySelector('.hud-floor').textContent;
     check(`world opens on the next unlocked floor ("${floorLabel}")`, floorLabel.startsWith('Floor 2'));
+    const f2rooms = W.ENDO_RPG.floors[2].rooms.map((r) => r.name).filter(Boolean);
+    check(`Floor 2 has its own layout without an ED or ICU (${f2rooms.join(', ')})`, !f2rooms.some((n) => /emergency|icu/i.test(n)) && W.ENDO_RPG.world.rooms.some((r) => r.id === 'ed') && W.ENDO_RPG.world.rooms.some((r) => r.id === 'icu'));
     W.EndoWorldDebug.interact('maya');
     await sleep(20);
     for (let k = 0; k < 3; k++) { const b = findBtn('#dialog .btn', 'Next'); if (b) b.click(); }

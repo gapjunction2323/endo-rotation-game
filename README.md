@@ -40,6 +40,8 @@ Accounts, cloud sync, guilds with chat and a weekly raid boss, quiz duels, and a
 3. **Authentication → Sign In / Providers → Email**: turn off **Confirm email** so residents can sign up and play immediately (optional).
 4. **Project Settings → API**: copy the **Project URL** and the **anon public** key into `config.js`, then redeploy.
 
+Projects set up before floors existed: run `supabase/add-floors.sql` in the SQL Editor once so residents only see players on the same floor. Until then the game falls back to the old presence call and shows everyone on every floor.
+
 Residents sign in at the Badge Office in the lobby (or the 🌐 button). Signed-in players see each other walking the hospital.
 
 Coins, gear, and XP live in each player's own save. The server enforces the shared parts (guild membership, raid HP and daily attack limits, duel scores, market sales) but trusts each client's inventory, which is fine for a class of friends but not for a public game.
@@ -47,8 +49,9 @@ Coins, gear, and XP live in each player's own save. The server enforces the shar
 ## Adding a day
 
 1. Create `content/dayN.js` that sets `window.ENDO_CONTENT[N] = { scene, objectives, source, stations: [...] }`. Use `content/day1.js` as the template. Station types are `consult`, `pager`, `match`, `sort`, `boss`, and `pearls`.
-2. Add a `<script src="content/dayN.js">` tag in `index.html`.
-3. Add the file to `ASSETS` in `sw.js` and bump `CACHE`.
+2. Give the day its own floor plan in `content/rpg-data.js` under `floors[N]` (rooms, doors, decor, spawn/arrive point, and NPC slots). Floor 1 holds the ED, ICU, and the shared services (pharmacy, lab, library, guild hall, arena, badge office); upper floors should look like the units that day's cases come from. Each station slot's `id` matches a key in the day's `cast`. A day without a floor plan borrows Floor 2's.
+3. Add a `<script src="content/dayN.js">` tag in `index.html`.
+4. Add the file to `ASSETS` in `sw.js` and bump `CACHE`.
 
 ## Testing
 

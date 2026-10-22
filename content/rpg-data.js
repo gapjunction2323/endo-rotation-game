@@ -84,10 +84,86 @@ window.ENDO_RPG = {
   raidReward: { coins: 80, mats: { note: 1, fragment: 2 } },
   duelReward: { win: 40, tie: 20, loss: 10 },
 
+  // Upper floors. Floor 1 (the ground floor above) holds the ED, ICU, and the shared services
+  // (pharmacy, lab, library, guild hall, arena, badge office). Every other rotation day gets its
+  // own floor plan here, keyed by day number. Station NPCs are slots: the day's content `cast`
+  // (keyed by the same ids) decides which station each slot runs and can rename or re-skin it.
+  // A slot with no matching cast entry is left empty on that floor.
+  floors: {
+    2: {
+      w: 36, h: 29,
+      spawn: { x: 17, y: 26.2 },
+      arrive: { x: 17, y: 26.2 },
+      name: 'Clinic & Wards',
+      theme: { void: '#1c1824', wall: '#4a3f5c', wallTop: '#66597d', label: 'rgba(58,44,70,.6)' },
+      rooms: [
+        { id: 'hall', name: '', x: 15, y: 2, w: 4, h: 26, color: '#e8e1d4' },
+        { id: 'ward', name: 'Medicine Ward 4B', x: 1, y: 2, w: 13, h: 8, color: '#dde9da' },
+        { id: 'medroom', name: 'Med Room', x: 1, y: 11, w: 13, h: 4, color: '#dcebf3' },
+        { id: 'edu', name: 'Diabetes Education', x: 1, y: 16, w: 13, h: 5, color: '#f3ead2' },
+        { id: 'lounge', name: 'Staff Lounge', x: 1, y: 22, w: 13, h: 6, color: '#e8ddf0' },
+        { id: 'ld', name: 'L&D Triage', x: 20, y: 2, w: 15, h: 8, color: '#f6dce5' },
+        { id: 'clinic', name: 'Endocrine Clinic', x: 20, y: 11, w: 15, h: 6, color: '#d6ebe8' },
+        { id: 'conf', name: 'Conference Room', x: 20, y: 18, w: 15, h: 5, color: '#ebe1d1' },
+        { id: 'wait', name: 'Waiting Area', x: 20, y: 24, w: 15, h: 4, color: '#dfe3ef' }
+      ],
+      doors: [
+        { x: 14, y: 5, w: 1, h: 2 }, { x: 14, y: 12, w: 1, h: 2 }, { x: 14, y: 18, w: 1, h: 1 }, { x: 14, y: 24, w: 1, h: 2 },
+        { x: 19, y: 5, w: 1, h: 2 }, { x: 19, y: 13, w: 1, h: 1 }, { x: 19, y: 20, w: 1, h: 1 }, { x: 19, y: 25, w: 1, h: 2 }
+      ],
+      decor: [
+        // ward: four beds with monitors and a charting station
+        { t: 'bed', x: 2, y: 2, w: 1, h: 2 }, { t: 'monitor', x: 3, y: 2, w: 1, h: 1 },
+        { t: 'bed', x: 5, y: 2, w: 1, h: 2 }, { t: 'monitor', x: 6, y: 2, w: 1, h: 1 },
+        { t: 'bed', x: 8, y: 2, w: 1, h: 2 }, { t: 'monitor', x: 9, y: 2, w: 1, h: 1 },
+        { t: 'bed', x: 11, y: 2, w: 1, h: 2 }, { t: 'monitor', x: 12, y: 2, w: 1, h: 1 },
+        { t: 'counter', x: 2, y: 8, w: 3, h: 1 }, { t: 'sink', x: 13, y: 9, w: 1, h: 1 },
+        // med room: insulin fridge, stock shelves, prep counter
+        { t: 'fridge', x: 1, y: 11, w: 2, h: 1 }, { t: 'shelf', x: 4, y: 11, w: 9, h: 1 }, { t: 'counter', x: 3, y: 13, w: 4, h: 1 },
+        // diabetes education: whiteboard and teaching tables
+        { t: 'whiteboard', x: 2, y: 16, w: 5, h: 1 }, { t: 'table', x: 2, y: 18, w: 3, h: 1 }, { t: 'table', x: 7, y: 18, w: 3, h: 1 },
+        { t: 'plant', x: 1, y: 20, w: 1, h: 1 },
+        // staff lounge: couch, coffee counter, study desk
+        { t: 'sofa', x: 1, y: 22, w: 4, h: 1 }, { t: 'table', x: 2, y: 24, w: 2, h: 1 }, { t: 'counter', x: 7, y: 22, w: 3, h: 1 },
+        { t: 'desk', x: 9, y: 26, w: 3, h: 1 }, { t: 'plant', x: 13, y: 27, w: 1, h: 1 },
+        // L&D triage: three bays with fetal monitors
+        { t: 'bed', x: 22, y: 2, w: 1, h: 2 }, { t: 'monitor', x: 23, y: 2, w: 1, h: 1 },
+        { t: 'bed', x: 27, y: 2, w: 1, h: 2 }, { t: 'monitor', x: 28, y: 2, w: 1, h: 1 },
+        { t: 'bed', x: 32, y: 2, w: 1, h: 2 }, { t: 'monitor', x: 33, y: 2, w: 1, h: 1 },
+        { t: 'counter', x: 21, y: 8, w: 3, h: 1 },
+        // endocrine clinic: exam tables and a workstation
+        { t: 'exam', x: 22, y: 12, w: 2, h: 1 }, { t: 'exam', x: 29, y: 12, w: 2, h: 1 }, { t: 'sink', x: 34, y: 11, w: 1, h: 1 },
+        { t: 'desk', x: 31, y: 15, w: 3, h: 1 },
+        // conference room: screen and long table
+        { t: 'whiteboard', x: 23, y: 18, w: 8, h: 1 }, { t: 'table', x: 22, y: 20, w: 10, h: 1 },
+        // waiting area: chair rows
+        { t: 'chairs', x: 21, y: 24, w: 5, h: 1 }, { t: 'chairs', x: 21, y: 26, w: 5, h: 1 },
+        { t: 'chairs', x: 28, y: 24, w: 5, h: 1 }, { t: 'chairs', x: 28, y: 26, w: 5, h: 1 }, { t: 'plant', x: 34, y: 27, w: 1, h: 1 },
+        // hallway: nurses' station in the middle
+        { t: 'counter', x: 16, y: 14, w: 2, h: 1 }, { t: 'plant', x: 15, y: 2, w: 1, h: 1 }, { t: 'plant', x: 18, y: 2, w: 1, h: 1 }
+      ],
+      npcs: [
+        { id: 'maya', emoji: '🛏️', name: 'Ward patient', color: '#f87171', x: 5.5, y: 4.8, act: { type: 'station' } },
+        { id: 'alvarez', emoji: '🤰🏽', name: 'L&D patient', color: '#fbbf24', x: 27.5, y: 4.8, act: { type: 'station' } },
+        { id: 'sam', emoji: '🧑🏾‍💼', name: 'Pharmacy Resident Sam', color: '#a3e635', x: 9.5, y: 13.2, act: { type: 'station' } },
+        { id: 'ortiz', emoji: '👩🏻‍🏫', name: 'Diabetes Educator', color: '#60a5fa', x: 11.5, y: 17.6, act: { type: 'station' } },
+        { id: 'noor', emoji: '👩🏿‍⚕️', name: 'Dr. Ade, Dermatology', color: '#f59e0b', x: 25.5, y: 14.6, act: { type: 'station' } },
+        { id: 'okafor', emoji: '👨🏽‍🏫', name: 'Dr. Okafor, Attending', color: '#f472b6', x: 33.2, y: 20.3, act: { type: 'station' } },
+        { id: 'carrel', emoji: '📚', name: 'Study Carrel', obj: true, x: 10.5, y: 25.2, act: { type: 'station' } },
+        { id: 'board', emoji: '📋', name: 'Rotation Board', obj: true, x: 15.6, y: 26.4, act: { type: 'days' },
+          lines: ['The full 14-day rotation schedule, briefings, and scores.'] },
+        { id: 'elevator', emoji: '🛗', name: 'Elevator', obj: true, x: 17, y: 27.4, act: { type: 'elevator' },
+          lines: ['Each floor holds one day of the rotation. The ED, ICU, pharmacy, and guild hall are on Floor 1.'] }
+      ]
+    }
+  },
+
   world: {
     w: 40, h: 28,
     spawn: { x: 15.5, y: 21.5 },
-    floor: 'Floor 1 · Diabetes Emergencies',
+    arrive: { x: 37, y: 14.5 },
+    name: 'Emergency & ICU',
+    theme: { void: '#0e1830', wall: '#2f4166', wallTop: '#425887', label: 'rgba(30,41,59,.55)' },
     rooms: [
       { id: 'hall', name: '', x: 1, y: 13, w: 38, h: 3, color: '#d3dae6' },
       { id: 'ed', name: 'Emergency Dept', x: 1, y: 2, w: 9, h: 10, color: '#f6d9d9' },

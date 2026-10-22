@@ -90,11 +90,13 @@
   const rpcs = {
     ping(uid, a) {
       const me = player(uid);
-      Object.assign(me, { x: a.p_x, y: a.p_y, seen_at: iso() });
+      const floor = a.p_floor || 1;
+      Object.assign(me, { x: a.p_x, y: a.p_y, floor, seen_at: iso() });
       const rival = player(RIVAL);
       rival.seen_at = iso();
+      rival.floor = rival.floor || 1;
       rival.x = 16.5 + Math.sin(Date.now() / 2000) * 1.5;
-      return db.players.filter((p) => p.id !== uid && Date.now() - Date.parse(p.seen_at || 0) < 30000 && p.x != null)
+      return db.players.filter((p) => p.id !== uid && Date.now() - Date.parse(p.seen_at || 0) < 30000 && p.x != null && (p.floor || 1) === floor)
         .map(({ id, name, avatar, level, x, y }) => ({ id, name, avatar, level, x, y }));
     },
     touch(uid) { player(uid).seen_at = iso(); return null; },
