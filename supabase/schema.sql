@@ -376,11 +376,25 @@ begin
   return total;
 end $$;
 
+-- ---------- hiscores ----------
+create or replace function public.hiscores()
+returns table (id uuid, name text, avatar text, level int, xp int, guild text, emblem text, duel_wins int, raid_dmg int)
+language sql stable security definer set search_path = public as $$
+  select p.id, p.name, p.avatar, p.level, p.xp, g.name, g.emblem,
+    (select count(*)::int from duels d where d.status = 'done'
+       and ((d.challenger = p.id and d.c_score > d.o_score) or (d.opponent = p.id and d.o_score > d.c_score))),
+    (select coalesce(sum(h.dmg), 0)::int from raid_hits h where h.player_id = p.id)
+  from players p left join guilds g on g.id = p.guild_id
+  order by p.xp desc
+  limit 200
+$$;
+
 -- ---------- function access ----------
 revoke execute on all functions in schema public from anon, public;
 grant execute on function public.my_guild_id(), public.ping(real, real), public.touch(), public.my_guild(),
   public.create_guild(text, text), public.join_guild(text), public.leave_guild(),
   public.raid_current(text), public.raid_hit(uuid, int), public.raid_claim(uuid),
   public.duel_create(uuid), public.duel_submit(uuid, int), public.duel_decline(uuid), public.duel_claim(uuid),
-  public.market_list(text, text, int, int), public.market_buy(uuid), public.market_cancel(uuid), public.market_collect()
+  public.market_list(text, text, int, int), public.market_buy(uuid), public.market_cancel(uuid), public.market_collect(),
+  public.hiscores()
   to authenticated;

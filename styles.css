@@ -412,3 +412,14 @@ body.in-world main { padding: 0; max-width: none; }
 .qtime i { display: block; height: 100%; width: 100%; background: linear-gradient(90deg, var(--warn), var(--accent)); }
 .qctx { margin: 0 0 4px; }
 .quiz .answers { display: grid; gap: 8px; }
+
+/* ---------- hiscores ---------- */
+.hs-me { display: flex; align-items: center; gap: 12px; }
+.hs-av { font-size: 2.2rem; }
+.hs-row { display: flex; align-items: center; gap: 10px; border-top: 1px solid var(--line); padding: 10px 6px; }
+.hs-row:first-of-type { border-top: 0; }
+.hs-row.mine { background: #0f3a35; border-radius: 10px; }
+.hs-rank { width: 34px; flex: none; text-align: center; font-weight: 800; color: var(--muted); }
+.hs-g { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; min-width: 0; }
+.hs-val { margin-left: auto; text-align: right; font-weight: 700; white-space: nowrap; }
+.hs-val small { display: block; font-weight: 400; }

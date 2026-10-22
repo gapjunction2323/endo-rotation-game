@@ -214,6 +214,7 @@ window.EndoNet = {
     function status(type) {
       if (!configured) return 'soon';
       if (!sess) return type === 'account' ? 'new' : null;
+      if (type === 'hiscores') return null;
       if (type === 'guild') return flags.guild ? null : 'new';
       if (type === 'duel') return flags.duels ? 'new' : null;
       if (type === 'market') return flags.sales ? 'new' : null;
@@ -431,6 +432,7 @@ window.EndoNet = {
             <a class="hub-a" href="#/guild"><span>🛡️</span><b>Guild Hall</b><small>Guild chat and the weekly raid boss</small></a>
             <a class="hub-a" href="#/duels"><span>⚔️</span><b>Duel Arena</b><small>Five-question case duels${flags.duels ? ` · ${flags.duels} waiting` : ''}</small></a>
             <a class="hub-a" href="#/market"><span>🤝</span><b>Trading Post</b><small>Buy and sell with other residents</small></a>
+            <a class="hub-a" href="#/hiscores"><span>🏆</span><b>Hiscores</b><small>Top XP, duel wins, raid damage, and guilds</small></a>
           </div>
           <p class="muted small">${onlineCount ? `${onlineCount} other resident${onlineCount === 1 ? ' is' : 's are'} walking the hospital right now.` : 'Other signed-in residents appear in the hospital as gold avatars.'}</p>
         </section>`;
@@ -941,6 +943,74 @@ window.EndoNet = {
       }
     }
 
+    // ---------- Hiscores ----------
+    let hsTab = 'xp';
+    const HS_TABS = [
+      ['xp', '⭐ XP', (p) => p.xp, (p) => `Lv ${p.level} · ${p.xp} XP`],
+      ['duels', '⚔️ Duels', (p) => p.duel_wins, (p) => `${p.duel_wins} win${p.duel_wins === 1 ? '' : 's'}`],
+      ['raids', '👾 Raids', (p) => p.raid_dmg, (p) => `${p.raid_dmg} dmg`],
+      ['guilds', '🛡️ Guilds', null, null]
+    ];
+    const medal = (i) => ['🥇', '🥈', '🥉'][i] || `#${i + 1}`;
+    function personalCard() {
+      const s = S();
+      const info = G.RPG.levelInfo(s.xp);
+      const days = Object.values(s.days).filter((d) => d.completed).length;
+      return `<section class="card hs-me"><span class="hs-av">${esc(s.profile.avatar)}</span>
+        <div><b>${drName(s.profile)}</b><div class="muted small">Lv ${info.level} ${esc(info.title)} · ${s.xp} XP · ${days} day${days === 1 ? '' : 's'} complete · 🪙 ${s.rpg.coins}</div></div></section>`;
+    }
+    async function viewHiscores() {
+      const v = shell('🏆 Hiscores');
+      if (!configured || !sess) {
+        v.box.innerHTML = personalCard();
+        const g = el('<div></div>');
+        v.box.appendChild(g);
+        gate({ box: g, alive: v.alive });
+        return;
+      }
+      v.box.innerHTML = personalCard() + loading;
+      try {
+        const rows = await rpc('hiscores');
+        if (!v.alive()) return;
+        renderHiscores(v, rows || []);
+      } catch (e) {
+        if (/hiscores/.test(e.message)) e.message = 'The hiscores board needs one more database step: run supabase/add-hiscores.sql in the Supabase SQL Editor.';
+        fail(v, e, viewHiscores);
+      }
+    }
+    function renderHiscores(v, rows) {
+      const tab = HS_TABS.find((t) => t[0] === hsTab);
+      let list;
+      if (hsTab === 'guilds') {
+        const by = {};
+        rows.forEach((p) => {
+          if (!p.guild) return;
+          const g = by[p.guild] || (by[p.guild] = { name: p.guild, emblem: p.emblem, xp: 0, members: 0, raid: 0, mine: false });
+          g.xp += p.xp;
+          g.members++;
+          g.raid += p.raid_dmg;
+          if (p.id === me()) g.mine = true;
+        });
+        const gs = Object.values(by).sort((a, b) => b.xp - a.xp);
+        list = gs.length ? gs.map((g, i) => `<div class="hs-row ${g.mine ? 'mine' : ''}"><span class="hs-rank">${medal(i)}</span>
+            <span class="who">${esc(g.emblem || '🛡️')} ${esc(g.name)}</span>
+            <span class="hs-val">${g.xp} XP<small class="muted">${g.members} member${g.members === 1 ? '' : 's'} · ${g.raid} raid dmg</small></span></div>`).join('')
+          : '<p class="muted">No guilds yet. Start one in the Guild Hall.</p>';
+      } else {
+        const sorted = rows.slice().sort((a, b) => tab[2](b) - tab[2](a) || b.xp - a.xp);
+        const ranked = hsTab === 'xp' ? sorted : sorted.filter((p) => tab[2](p) > 0);
+        list = ranked.length ? ranked.map((p, i) => `<div class="hs-row ${p.id === me() ? 'mine' : ''}"><span class="hs-rank">${medal(i)}</span>
+            ${who(p)}${p.guild ? `<span class="muted small hs-g">${esc(p.emblem || '')} ${esc(p.guild)}</span>` : ''}
+            <span class="hs-val">${tab[3](p)}</span></div>`).join('')
+          : `<p class="muted">${hsTab === 'duels' ? 'No duels won yet. Head to the Duel Arena.' : 'No raid damage yet. Attack your guild\'s boss.'}</p>`;
+      }
+      const myRank = hsTab === 'guilds' ? -1 : rows.slice().sort((a, b) => tab[2](b) - tab[2](a) || b.xp - a.xp).findIndex((p) => p.id === me());
+      v.box.innerHTML = `${personalCard()}
+        <div class="tabs" role="tablist">${HS_TABS.map(([k, label]) => `<button class="tab ${k === hsTab ? 'on' : ''}" role="tab" aria-selected="${k === hsTab}" data-hs="${k}">${label}</button>`).join('')}</div>
+        <section class="card">${myRank >= 0 && tab[2](rows.find((p) => p.id === me())) > 0 ? `<p class="small">You're <b>${medal(myRank)}</b> of ${rows.length}.</p>` : ''}${list}</section>`;
+      v.box.querySelectorAll('[data-hs]').forEach((b) => { b.onclick = () => { hsTab = b.dataset.hs; renderHiscores(v, rows); }; });
+    }
+
     // ---------- start-up ----------
     if (signedIn()) {
       afterSignIn(false).catch((e) => setSync('err', e.message));
@@ -957,7 +1027,7 @@ window.EndoNet = {
       others: othersList,
       hud,
       statusLine: syncText,
-      views: { online: viewOnline, guild: viewGuild, duels: viewDuels, market: viewMarket }
+      views: { online: viewOnline, guild: viewGuild, duels: viewDuels, market: viewMarket, hiscores: viewHiscores }
     };
   }
 };

@@ -1,4 +1,4 @@
-const CACHE = 'endo-rotation-v7';
+const CACHE = 'endo-rotation-v8';
 const ASSETS = [
   './',
   './index.html',

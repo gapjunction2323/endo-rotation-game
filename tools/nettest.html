@@ -170,6 +170,18 @@ frame.addEventListener('load', async () => {
     await waitFor(() => saved().rpg.coins !== coins3);
     check('sale proceeds collected', saved().rpg.coins === coins3 + 30);
 
+    // ---------- hiscores ----------
+    await go('#/hiscores', '.hs-row');
+    const xpRows = $$('.hs-row');
+    check('hiscores XP board ranks both players', xpRows.length === 2 && xpRows[0].textContent.includes('Rivera') && !!$('.hs-row.mine'));
+    btn('Duels').click();
+    await waitFor(() => $('.tab.on') && $('.tab.on').textContent.includes('Duels'));
+    check('duel board shows my win', $$('.hs-row').length === 1 && $('.hs-row.mine') && $('.hs-row').textContent.includes('1 win'));
+    btn('Raids').click();
+    check('raid board shows my damage', $('.hs-row.mine') && $('.hs-row.mine').textContent.includes('130 dmg'));
+    btn('Guilds').click();
+    check('guild board totals members', $$('.hs-row').length === 1 && $('.hs-row').textContent.includes('2 members'));
+
     // ---------- presence ----------
     await go('#/', '#wc');
     await sleep(3200);

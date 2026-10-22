@@ -340,7 +340,7 @@ window.EndoRPG = {
     const isFloor = (x, y) => x >= 0 && y >= 0 && x < W.w && y < W.h && floorGrid[y * W.w + x] >= 0;
     const blocked = (x, y) => { const tx = Math.floor(x); const ty = Math.floor(y); return tx < 0 || ty < 0 || tx >= W.w || ty >= W.h || solid[ty * W.w + tx] === 1; };
 
-    const NET_ROUTES = { account: '#/online', guild: '#/guild', raid: '#/guild', duel: '#/duels', market: '#/market' };
+    const NET_ROUTES = { account: '#/online', guild: '#/guild', raid: '#/guild', duel: '#/duels', market: '#/market', hiscores: '#/hiscores' };
     function npcStatus(n) {
       const a = n.act;
       if (a.type === 'station') {
@@ -713,7 +713,7 @@ window.EndoRPG = {
           case 'lab': return [bye, { label: 'Open crafting ▸', cls: 'btn primary', fn: () => leaveTo('#/lab') }];
           case 'days': return [bye, { label: 'Open schedule ▸', cls: 'btn primary', fn: () => leaveTo('#/days') }];
           case 'tutorial': return [{ label: 'Got it', cls: 'btn primary', fn: () => { S().rpg.seenIntro = true; G.save(); closeDialog(); } }];
-          case 'account': case 'guild': case 'raid': case 'duel': case 'market':
+          case 'account': case 'guild': case 'raid': case 'duel': case 'market': case 'hiscores':
             return [bye, { label: 'Open ▸', cls: 'btn primary', fn: () => leaveTo(NET_ROUTES[a.type]) }];
           default: return [{ label: 'OK', cls: 'btn primary', fn: closeDialog }];
         }

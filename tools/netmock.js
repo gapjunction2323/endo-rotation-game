@@ -192,6 +192,14 @@
       l.status = 'cancelled';
       return { ...l };
     },
+    hiscores() {
+      return db.players.map((p) => {
+        const g = db.guilds.find((x) => x.id === p.guild_id);
+        const wins = db.duels.filter((d) => d.status === 'done' && ((d.challenger === p.id && d.c_score > d.o_score) || (d.opponent === p.id && d.o_score > d.c_score))).length;
+        const dmg = db.raid_hits.filter((h) => h.player_id === p.id).reduce((a, h) => a + h.dmg, 0);
+        return { id: p.id, name: p.name, avatar: p.avatar, level: p.level, xp: p.xp, guild: g ? g.name : null, emblem: g ? g.emblem : null, duel_wins: wins, raid_dmg: dmg };
+      }).sort((a, b) => b.xp - a.xp);
+    },
     market_collect(uid) {
       let total = 0;
       db.listings.forEach((l) => { if (l.seller === uid && l.status === 'sold' && !l.seller_paid) { l.seller_paid = true; total += l.price; } });

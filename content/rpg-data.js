@@ -152,6 +152,8 @@ window.ENDO_RPG = {
         lines: ['Challenge another resident to a five-question case duel. Same questions, same clock. Best score wins.'] },
       { id: 'broker', emoji: '🤝', name: 'Trading Post', obj: true, x: 29.5, y: 13.6, act: { type: 'market' },
         lines: ['Sell spare materials, consumables, and gear to other residents, or buy what you need.'] },
+      { id: 'trophy', emoji: '🏆', name: 'Hiscore Board', obj: true, x: 19.5, y: 22.5, act: { type: 'hiscores' },
+        lines: ['Top residents by XP, duel wins, and raid damage, plus the guild standings.'] },
       { id: 'badgeoffice', emoji: '🪪', name: 'Badge Office', obj: true, x: 13, y: 25.3, act: { type: 'account' },
         lines: ['Sign in to sync your progress across devices and play with your intern class.'] },
       { id: 'elevator', emoji: '🛗', name: 'Elevator', obj: true, x: 38.2, y: 14.5, act: { type: 'elevator' },
