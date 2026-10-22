@@ -2,7 +2,6 @@
   'use strict';
 
   const DAYS = window.ENDO_DAYS;
-  const RANKS = window.ENDO_RANKS;
   const CONTENT = window.ENDO_CONTENT || {};
   const STORE = 'endoRotation.v1';
   const RRT_PENALTY = 15;
@@ -12,7 +11,7 @@
   const modal = document.getElementById('modal');
 
   // ---------- state ----------
-  const fresh = () => ({ xp: 0, days: {}, bonusDay: null, unlockAll: false, hideInstall: false, profile: null, lastSaved: null });
+  const fresh = () => ({ xp: 0, days: {}, bonusDay: null, unlockAll: false, hideInstall: false, profile: null, lastSaved: null, rpg: null });
   const AVATARS = ['🧑‍⚕️', '👩🏽‍⚕️', '👨🏿‍⚕️', '👩🏻‍⚕️', '👨🏾‍⚕️', '🩺', '🧠', '🦋', '🩸', '💉', '🦴', '🧬', '🫀', '🔬', '🦉', '🐙'];
   const APP_ID = 'endo-rotation';
   const cleanName = (s) => String(s || '').replace(/\s+/g, ' ').trim().replace(/^dr(\.\s*|\s+)/i, '').slice(0, 20).trim();
@@ -25,6 +24,7 @@
   })();
   let warnedSave = false;
   let state = load();
+  let NET = null;
 
   function load() {
     try {
@@ -46,6 +46,7 @@
     }
     flashSave();
     if (!saveOk && !warnedSave) { warnedSave = true; setTimeout(warnSaveFail, 0); }
+    if (NET) NET.onSaved();
   }
   function warnSaveFail() {
     if (!modal.classList.contains('hidden')) return setTimeout(warnSaveFail, 800);
@@ -121,12 +122,6 @@
   const buzz = (ms) => { if (navigator.vibrate) navigator.vibrate(ms); };
   const dayMeta = (id) => DAYS.find((d) => d.id === id);
 
-  function rankFor(xp) {
-    let i = 0;
-    while (i + 1 < RANKS.length && xp >= RANKS[i + 1].xp) i++;
-    return { cur: RANKS[i], next: RANKS[i + 1] || null };
-  }
-
   function toast(msg, kind = '') {
     const t = el(`<div class="toast ${kind}">${msg}</div>`);
     document.getElementById('toasts').appendChild(t);
@@ -134,30 +129,34 @@
     setTimeout(() => t.remove(), 2100);
   }
 
+  const modalQueue = [];
   function showModal(html, buttons) {
+    if (!modal.classList.contains('hidden')) { modalQueue.push([html, buttons]); return; }
     modal.innerHTML = `<div class="modal-card">${html}<div class="modal-actions"></div></div>`;
     const actions = modal.querySelector('.modal-actions');
     buttons.forEach(({ label, cls = 'btn', onClick }) => {
       const b = el(`<button class="${cls}">${label}</button>`);
-      b.onclick = () => { modal.classList.add('hidden'); onClick && onClick(); };
+      b.onclick = () => {
+        modal.classList.add('hidden');
+        if (onClick) onClick();
+        const next = modalQueue.shift();
+        if (next && modal.classList.contains('hidden')) showModal(...next);
+      };
       actions.appendChild(b);
     });
     modal.classList.remove('hidden');
   }
 
-  function award(dayId, n, practice) {
+  function award(dayId, n, practice, xpPct = 0) {
     if (practice || n <= 0) return 0;
-    const mult = state.bonusDay === dayId ? 1.1 : 1;
-    const amt = Math.round(n * mult);
-    const before = rankFor(state.xp).cur;
+    const streak = state.bonusDay === dayId;
+    const amt = Math.round(n * (streak ? 1.1 : 1) * (1 + xpPct));
+    const before = state.xp;
     state.xp += amt;
+    const coins = RPG.afterXP(amt, before);
     save();
-    toast(`+${amt} XP${mult > 1 ? ' 🔥' : ''}`, 'good');
-    const after = rankFor(state.xp).cur;
+    toast(`+${amt} XP${streak ? ' 🔥' : ''} · +${coins} 🪙`, 'good');
     renderHeader();
-    if (after !== before) {
-      showModal(`<div class="big-emoji">🎖️</div><h2>Promoted!</h2><p>You are now a <b>${after.name}</b>.</p>`, [{ label: 'Keep going', cls: 'btn primary' }]);
-    }
     return amt;
   }
 
@@ -219,13 +218,14 @@
     });
     if (s.profile != null && !validProfile(s.profile)) bad('profile');
     if (s.bonusDay != null && !isNum(s.bonusDay)) bad('streak');
+    if (s.rpg != null && !isObj(s.rpg)) bad('character');
     const out = fresh();
     Object.keys(out).forEach((k) => { if (k in s) out[k] = s[k]; });
     out.unlockAll = !!out.unlockAll;
     out.hideInstall = !!out.hideInstall;
     if (out.profile) out.profile = { name: cleanName(out.profile.name), avatar: out.profile.avatar, createdAt: isNum(out.profile.createdAt) ? out.profile.createdAt : Date.now() };
     if (!isNum(out.lastSaved)) out.lastSaved = null;
-    return out;
+    return RPG.ensure(out);
   }
 
   const saveSummary = (s) => {
@@ -275,7 +275,7 @@
     return `<form class="profile-form" novalidate>
       <div class="pf-preview">
         <span class="pf-av">${esc(av)}</span>
-        <div><div class="pf-name">${esc(p ? drName(p) : 'Dr. ___')}</div><div class="muted pf-rank">${esc(rankFor(state.xp).cur.name)} · ${state.xp} XP</div></div>
+        <div><div class="pf-name">${esc(p ? drName(p) : 'Dr. ___')}</div><div class="muted pf-rank">Lv ${RPG.levelFor(state.xp)} ${esc(RPG.titleFor(RPG.levelFor(state.xp)))} · ${state.xp} XP</div></div>
       </div>
       <label class="pf-label" for="pfName">Your call-sign</label>
       <div class="name-field"><span>Dr.</span><input id="pfName" maxlength="24" autocomplete="nickname" autocapitalize="words" spellcheck="false" enterkeyhint="done" placeholder="Your name" value="${esc(p ? p.name : '')}"></div>
@@ -321,10 +321,22 @@
   const coreStations = (id) => CONTENT[id].stations.filter((s) => s.type !== 'pearls');
   const coreDone = (id) => coreStations(id).every((s) => dayState(id).stations[s.id]?.done);
 
+  const RPG = window.EndoRPG.init({
+    getState: () => state, save, toast, showModal, go, el, esc, buzz, renderHeader,
+    app, hdr, DAYS, CONTENT, dayState, isUnlocked, coreDone, hasContent, net: () => NET
+  });
+  RPG.ensure(state);
+  if (window.EndoNet) {
+    NET = window.EndoNet.init({
+      getState: () => state, save, toast, showModal, go, el, esc, buzz, renderHeader, app, RPG, CONTENT,
+      parseSave, saveSummary: (s) => saveSummary(s),
+      replaceState: (next) => { state = next; save(); renderHeader(); route(); }
+    });
+  }
+
   // ---------- header ----------
   function renderHeader() {
-    const { cur, next } = rankFor(state.xp);
-    const pct = next ? Math.min(100, ((state.xp - cur.xp) / (next.xp - cur.xp)) * 100) : 100;
+    const lv = RPG.levelInfo(state.xp);
     const p = state.profile;
     if (!p) {
       hdr.innerHTML = '<a href="#/" class="brand" aria-label="Home"><span class="logo">⚕️</span><span>Endo Rotation</span></a>';
@@ -332,10 +344,10 @@
     }
     hdr.innerHTML = `
       <a href="#/" class="brand has-me" aria-label="Home"><span class="logo">⚕️</span><span class="brand-t">Endo Rotation</span></a>
-      <a href="#/settings" class="me" aria-label="Profile: ${esc(drName(p))}" title="${esc(drName(p))}"><span class="me-av">${esc(p.avatar)}</span><span class="me-name">${esc(drName(p))}</span></a>
+      <a href="#/character" class="me" aria-label="Character: ${esc(drName(p))}" title="${esc(drName(p))}"><span class="me-av">${esc(p.avatar)}</span><span class="me-name">${esc(drName(p))}</span></a>
       <div class="rank">
-        <div class="rank-line"><b>${cur.name}</b><span>${state.xp} XP${next ? ` / ${next.xp}` : ''}</span></div>
-        <div class="bar"><div style="width:${pct}%"></div></div>
+        <div class="rank-line"><b>Lv ${lv.level} · ${lv.title}</b><span>${lv.into} / ${lv.need} XP</span></div>
+        <div class="bar"><div style="width:${lv.pct}%"></div></div>
       </div>
       ${pillHtml()}
       <nav><a href="#/badges" aria-label="Badges">🏅</a><a href="#/settings" aria-label="Settings">⚙️</a></nav>`;
@@ -398,10 +410,11 @@
 
     const returning = state.xp > 0 || Object.keys(state.days).length > 0;
     app.innerHTML = `
+      <a class="btn primary big enter" href="#/">🏥 Enter the hospital</a>
       <section class="hero">
         <a class="greet" href="#/settings"><span class="greet-av">${esc(state.profile.avatar)}</span><span>${returning ? 'Welcome back' : 'Welcome'}, <b>${esc(drName(state.profile))}</b></span></a>
         <h1>Operation Homeostasis</h1>
-        <p>A 14-day endocrine rotation. Run ward consults, clear your pager, survive the attending, and bank cloze pearls for Anki.</p>
+        <p>A 14-day endocrine rotation. Run ward consults, clear your pager, survive the attending, and lock it all in with a rapid-fire synthesis round.</p>
         <div class="progress-pill">${doneCount} / 14 days complete</div>
         ${saveNote()}
       </section>
@@ -429,7 +442,7 @@
     }).join('');
 
     app.innerHTML = `
-      <a class="back" href="#/">← All days</a>
+      <a class="back" href="#/days">← All days</a>
       <section class="card briefing">
         <div class="eyebrow">Day ${id} · ${meta.badge.icon} ${esc(meta.badge.name)}</div>
         <h1>${esc(meta.title)}</h1>
@@ -447,12 +460,12 @@
       const got = state.days[d.id]?.completed;
       return `<div class="badge ${got ? 'got' : ''}"><div class="b-icon">${d.badge.icon}</div><div class="b-name">${esc(d.badge.name)}</div><div class="b-day">Day ${d.id}</div></div>`;
     }).join('');
-    const ranks = RANKS.map((r) => `<li class="${state.xp >= r.xp ? 'got' : ''}"><b>${r.name}</b><span>${r.xp} XP</span></li>`).join('');
+    const ranks = window.ENDO_RPG.titles.map((t) => `<li class="${RPG.levelFor(state.xp) >= t.level ? 'got' : ''}"><b>${t.name}</b><span>Level ${t.level} · ${RPG.xpForLevel(t.level)} XP</span></li>`).join('');
     app.innerHTML = `
       <a class="back" href="#/">← Home</a>
       <h1>Badges</h1>
       <div class="badge-grid">${grid}</div>
-      <h2>Rank ladder</h2>
+      <h2>Title ladder</h2>
       <ul class="rank-list">${ranks}</ul>`;
   }
 
@@ -499,6 +512,11 @@
         ${importWidget()}
       </div>
       <div class="card">
+        <h3>Online play</h3>
+        <p class="muted small">${NET ? NET.statusLine() : 'Online features are unavailable in this build.'}</p>
+        <div class="row"><a class="btn" href="#/online">🪪 Account &amp; cloud sync</a></div>
+      </div>
+      <div class="card">
         <label class="toggle"><input type="checkbox" id="unlockAll" ${state.unlockAll ? 'checked' : ''}> Review mode: unlock every available day</label>
       </div>
       <div class="card">
@@ -535,7 +553,7 @@
     document.getElementById('unlockAll').onchange = (e) => { state.unlockAll = e.target.checked; save(); };
     document.getElementById('reset').onclick = () => showModal('<h2>Reset everything?</h2><p>This clears all XP, badges, and station progress on this device. Your profile is kept.</p>', [
       { label: 'Cancel', cls: 'btn ghost' },
-      { label: 'Reset', cls: 'btn danger', onClick: () => { state = Object.assign(fresh(), { profile: state.profile }); save(); renderHeader(); go('#/'); } }
+      { label: 'Reset', cls: 'btn danger', onClick: () => { state = RPG.ensure(Object.assign(fresh(), { profile: state.profile })); save(); renderHeader(); go('#/'); } }
     ]);
   }
 
@@ -547,29 +565,36 @@
     if (station.type === 'pearls' && !coreDone(dayId)) return go(`#/day/${dayId}`);
 
     const ds = dayState(dayId);
-    const practice = !!ds.stations[sid]?.done && station.type !== 'pearls';
+    const practice = !!ds.stations[sid]?.done;
+    const fromWorld = sessionStorage.getItem('endo.from') === 'world';
+    const back = fromWorld ? ['#/', '← Back to the hospital'] : [`#/day/${dayId}`, `← Day ${dayId}`];
+    const mod = RPG.stationStart(station, practice);
     app.innerHTML = `
-      <a class="back" href="#/day/${dayId}">← Day ${dayId}</a>
+      <a class="back" href="${back[0]}">${back[1]}</a>
       <h1 class="station-h">${station.icon} ${esc(station.title)}</h1>
-      ${practice ? '<div class="practice">Practice mode: no XP on replays</div>' : ''}
+      ${practice ? '<div class="practice">Practice mode: no XP on replays (you can still find coins and materials)</div>' : ''}
+      ${mod.banners.map((b) => `<div class="buff">${b}</div>`).join('')}
       <div id="stage"></div>`;
     const stage = document.getElementById('stage');
 
     const ctx = {
-      dayId, station, practice, stage,
-      award: (n) => award(dayId, n, practice),
-      finish(score, max) {
+      dayId, station, practice, stage, mod,
+      award: (n) => award(dayId, n, practice, mod.xpPct),
+      finish(score, max, { quiet = false } = {}) {
         const prev = ds.stations[sid];
         ds.stations[sid] = { done: true, score: Math.max(prev?.score || 0, practice ? 0 : score), max };
         if (practice && prev) ds.stations[sid].score = prev.score;
+        const loot = RPG.stationComplete(dayId, station, practice);
         save();
+        if (quiet) return loot;
         const unlockedPearls = !practice && coreDone(dayId) && station.type !== 'pearls';
         const card = el(`<div class="card finish">
           <div class="big-emoji">🏁</div>
           <h2>Station complete</h2>
           <p>${practice ? 'Practice run finished.' : `You earned <b>${score} / ${max} XP</b>.`}</p>
-          ${unlockedPearls ? '<p class="unlock">💎 Rapid-Fire Synthesis unlocked!</p>' : ''}
-          <a class="btn primary" href="#/day/${dayId}">Back to Day ${dayId}</a>
+          ${loot}
+          ${unlockedPearls ? '<p class="unlock">⚡ Rapid-Fire Synthesis unlocked at the Library study carrel!</p>' : ''}
+          <a class="btn primary" href="${back[0]}">${fromWorld ? 'Back to the hospital' : `Back to Day ${dayId}`}</a>
         </div>`);
         stage.appendChild(card);
         card.scrollIntoView({ behavior: 'smooth', block: 'center' });
@@ -586,7 +611,8 @@
     const nodes = station.nodes;
     const max = nodes.reduce((sum, n) => sum + (n.xp || 0), 0);
     let score = 0;
-    let stability = 3;
+    const maxStability = 3 + ctx.mod.stability;
+    let stability = maxStability;
 
     if (isConsult && station.chart) {
       const c = station.chart;
@@ -600,7 +626,7 @@
     }
     const drawStability = () => {
       const s = document.getElementById('stab');
-      if (s) s.textContent = '🟢'.repeat(stability) + '⚫'.repeat(3 - stability);
+      if (s) s.textContent = '🟢'.repeat(stability) + '⚫'.repeat(maxStability - stability);
     };
     drawStability();
 
@@ -613,7 +639,7 @@
         penalize(RRT_PENALTY, ctx.practice);
         showModal(`<div class="big-emoji">🚨</div><h2>Rapid response called</h2>
           <p>Your patient decompensated. ${ctx.practice ? '' : `<b>−${RRT_PENALTY} XP.</b>`}</p>
-          <p class="debrief">${station.rrt || ''}</p>`, [{ label: 'Resume case', cls: 'btn primary', onClick: () => { stability = 3; drawStability(); } }]);
+          <p class="debrief">${station.rrt || ''}</p>`, [{ label: 'Resume case', cls: 'btn primary', onClick: () => { stability = maxStability; drawStability(); } }]);
       }
     };
 
@@ -673,12 +699,14 @@
 
       let firstTry = true;
       const letters = 'ABCDEF';
+      const pairs = [];
       shuffle(node.options).forEach((opt, k) => {
         const b = el(`<button class="opt"><span class="letter">${letters[k]}</span><span>${opt.t}</span></button>`);
         b.onclick = () => {
           if (opt.ok) {
             answers.querySelectorAll('.opt').forEach((x) => (x.disabled = true));
             b.classList.add('right');
+            card.querySelector('.narrow')?.remove();
             succeed(firstTry ? node.xp || 0 : 0, opt.fb, true);
           } else {
             firstTry = false;
@@ -688,10 +716,30 @@
             if (opt.danger) loseStability(); else buzz(50);
           }
         };
+        pairs.push({ b, opt });
         answers.appendChild(b);
       });
+      narrowTool(ctx, answers, pairs);
     };
     step(0);
+  }
+
+  function narrowTool(ctx, answers, pairs) {
+    const wrongLeft = () => pairs.filter((p) => !p.opt.ok && !p.b.disabled);
+    if (RPG.narrowLeft(ctx.mod) <= 0 || wrongLeft().length < 2) return;
+    const btn = el(`<button class="btn ghost narrow" type="button">🔍 Narrow it down <span></span></button>`);
+    const label = () => { btn.querySelector('span').textContent = `(${RPG.narrowLeft(ctx.mod)} left)`; };
+    label();
+    btn.onclick = () => {
+      const wrong = wrongLeft();
+      if (wrong.length < 2 || !RPG.useNarrow(ctx.mod)) return btn.remove();
+      const p = wrong[Math.floor(Math.random() * wrong.length)];
+      p.b.disabled = true;
+      p.b.classList.add('narrowed');
+      if (RPG.narrowLeft(ctx.mod) <= 0 || wrongLeft().length < 2) btn.remove();
+      else label();
+    };
+    answers.after(btn);
   }
 
   // ---------- station: matching ----------
@@ -846,52 +894,175 @@
     step(0);
   }
 
-  // ---------- station: pearls ----------
-  const CLOZE = /\{\{c(\d+)::(.*?)(?:::(.*?))?\}\}/g;
-  function renderCloze(text) {
-    return esc(text).replace(CLOZE, (_, n, ans) => `<span class="cloze" tabindex="0" data-c="${n}"><span class="cl-hidden">[…]</span><span class="cl-ans">${ans}</span></span>`);
+  // ---------- station: rapid-fire synthesis ----------
+  const RF_KINDS = {
+    recall: { label: '🧠 Active recall', xp: 3 },
+    mcq: { label: '🎯 Multiple choice', xp: 3 },
+    why: { label: '❓ Why?', xp: 6 }
+  };
+  const highlight = (text) => esc(text).replace(/\{\{c\d+::(.*?)(?:::.*?)?\}\}/g, '<mark>$1</mark>');
+  const normalize = (s) => s.toLowerCase().replace(/[×*]/g, ' ').replace(/\s+/g, ' ').trim();
+  function recallMatches(answer, accept) {
+    const a = normalize(answer);
+    if (!a) return false;
+    const has = (k) => a.includes(normalize(k));
+    return (!accept.all || accept.all.every(has)) && (!accept.any || accept.any.some(has));
   }
 
   function runPearls(ctx) {
     const { station, stage, dayId } = ctx;
+    const items = station.items;
+    const max = items.reduce((sum, it) => sum + RF_KINDS[it.kind].xp, 0);
+    const tally = { recall: [0, 0], mcq: [0, 0], why: [0, 0] };
+    let score = 0;
+
+    stage.appendChild(el(`<div class="card rf-intro">${station.intro}
+      <div class="rf-legend">${Object.values(RF_KINDS).map((k) => `<span class="rf-kind">${k.label}</span>`).join('')}</div></div>`));
+
+    const step = (i) => {
+      if (i >= items.length) return wrapUp();
+      const it = items[i];
+      const kind = RF_KINDS[it.kind];
+      tally[it.kind][1] += kind.xp;
+      const card = el(`<section class="card node rf-${it.kind}">
+        <div class="eyebrow">${i + 1} of ${items.length} · <span class="rf-kind">${kind.label}</span> · ${kind.xp} XP</div>
+        <h3 class="prompt">${it.q}</h3>
+        <div class="answers"></div>
+        <div class="feedback"></div>
+      </section>`);
+      stage.appendChild(card);
+      if (i > 0) card.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      const answers = card.querySelector('.answers');
+      const feedback = card.querySelector('.feedback');
+
+      const done = (earned, html, cls) => {
+        score += earned;
+        tally[it.kind][0] += earned;
+        feedback.insertAdjacentHTML('beforeend', `${html ? `<div class="fb ${cls}">${html}</div>` : ''}
+          ${it.update ? '<div class="update"><b>2026 Update:</b> this reflects current guidelines, not the 2009 text.</div>' : ''}`);
+        const next = el(`<button class="btn primary">${i + 1 < items.length ? 'Next →' : 'See results'}</button>`);
+        next.onclick = () => { next.remove(); step(i + 1); };
+        feedback.appendChild(next);
+        if (earned) toast(`+${earned}`, 'good');
+      };
+
+      if (it.kind === 'mcq') {
+        let firstTry = true;
+        const pairs = [];
+        shuffle(it.options).forEach((opt, k) => {
+          const b = el(`<button class="opt"><span class="letter">${'ABCD'[k]}</span><span>${opt.t}</span></button>`);
+          pairs.push({ b, opt });
+          b.onclick = () => {
+            if (opt.ok) {
+              answers.querySelectorAll('.opt').forEach((x) => (x.disabled = true));
+              card.querySelector('.narrow')?.remove();
+              b.classList.add('right');
+              feedback.innerHTML = '';
+              done(firstTry ? kind.xp : 0, `${firstTry ? '✅' : '☑️ Got there.'} ${it.a}`, firstTry ? 'good' : 'neutral');
+            } else {
+              firstTry = false;
+              b.disabled = true;
+              b.classList.add('wrong');
+              buzz(50);
+              feedback.innerHTML = '<div class="fb bad">Not that one. Try again.</div>';
+            }
+          };
+          answers.appendChild(b);
+        });
+        narrowTool(ctx, answers, pairs);
+        return;
+      }
+
+      if (it.kind === 'recall') {
+        const form = el(`<form class="rf-recall">
+          <input type="text" autocomplete="off" autocapitalize="off" placeholder="Type your answer from memory" aria-label="Your answer">
+          <div class="row"><button class="btn primary" type="submit">Check</button><button class="btn ghost" type="button" data-act="idk">I don't know</button></div>
+        </form>`);
+        answers.appendChild(form);
+        const input = form.querySelector('input');
+        const lock = () => { input.readOnly = true; form.querySelectorAll('button').forEach((b) => (b.disabled = true)); };
+        form.onsubmit = (e) => {
+          e.preventDefault();
+          if (!input.value.trim()) return input.focus();
+          lock();
+          if (recallMatches(input.value, it.accept)) {
+            form.classList.add('right');
+            return done(kind.xp, `✅ ${it.a}`, 'good');
+          }
+          feedback.innerHTML = `<div class="fb neutral"><b>Answer:</b> ${it.a}</div><div class="grade">Did your answer mean the same thing?</div>`;
+          const row = el('<div class="row grade-row"></div>');
+          [['Yes, I had it', kind.xp - 1, 'good'], ['No, I missed it', 0, 'bad']].forEach(([lbl, xp, cls]) => {
+            const b = el(`<button class="btn ${cls}">${lbl}</button>`);
+            b.onclick = () => { row.remove(); form.classList.add(xp ? 'right' : 'wrong'); done(xp, '', ''); };
+            row.appendChild(b);
+          });
+          feedback.appendChild(row);
+        };
+        form.querySelector('[data-act="idk"]').onclick = () => {
+          lock();
+          form.classList.add('wrong');
+          done(0, `<b>Answer:</b> ${it.a}`, 'neutral');
+        };
+        return;
+      }
+
+      const per = kind.xp / it.points.length;
+      const box = el(`<div class="rf-why">
+        <textarea rows="4" placeholder="Explain it in your own words, as if teaching a med student"></textarea>
+        <button class="btn primary reveal">Compare with the model answer</button>
+      </div>`);
+      answers.appendChild(box);
+      box.querySelector('.reveal').onclick = (e) => {
+        const text = box.querySelector('textarea');
+        if (!text.value.trim()) { toast('Write your explanation first'); return text.focus(); }
+        e.target.remove();
+        text.readOnly = true;
+        feedback.innerHTML = `<div class="fb neutral"><b>Key points.</b> Tick each one your explanation covered:
+          <div class="checklist">${it.points.map((p, k) => `<label class="check"><input type="checkbox" data-k="${k}"><span>${p}</span></label>`).join('')}</div></div>`;
+        const btn = el('<button class="btn primary">Score my explanation</button>');
+        btn.onclick = () => {
+          const hit = feedback.querySelectorAll('.checklist input:checked').length;
+          feedback.querySelectorAll('.checklist input').forEach((c) => (c.disabled = true));
+          btn.remove();
+          done(Math.round(hit * per), `You covered <b>${hit} of ${it.points.length}</b> key points.`, hit === it.points.length ? 'good' : 'neutral');
+        };
+        feedback.appendChild(btn);
+      };
+    };
+
+    const wrapUp = () => {
+      ctx.award(score);
+      const loot = ctx.finish(score, max, { quiet: true });
+      const rows = Object.entries(RF_KINDS).map(([k, v]) => `<tr><td>${v.label}</td><td>${tally[k][0]} / ${tally[k][1]}</td></tr>`).join('');
+      const list = (arr, update) => arr.map((p) => `<li class="pearl ${update ? 'upd' : ''}">${highlight(p)}</li>`).join('');
+      const summary = el(`<div>
+        <div class="card finish">
+          <div class="big-emoji">⚡</div>
+          <h2>Round complete</h2>
+          <p>${ctx.practice ? 'Practice run finished.' : `You earned <b>${score} / ${max} XP</b>.`}</p>
+          <table class="labs">${rows}</table>
+          ${loot}
+        </div>
+        <details class="card recap" open>
+          <summary>💎 Day ${dayId} pearl recap (${station.pearls.length + (station.updates?.length || 0)})</summary>
+          <ol class="pearls">${list(station.pearls)}</ol>
+          ${station.updates?.length ? `<h3 class="upd-h">2026 Updates</h3><ol class="pearls">${list(station.updates, true)}</ol>` : ''}
+        </details>
+        <div class="row"><button class="btn" data-act="again">Play the round again</button></div>
+        <div class="finish-day"></div>
+      </div>`);
+      stage.appendChild(summary);
+      summary.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      summary.querySelector('[data-act="again"]').onclick = () => go(location.hash);
+      completeDayButton(ctx, summary.querySelector('.finish-day'));
+    };
+    step(0);
+  }
+
+  function completeDayButton(ctx, fin) {
+    const { dayId } = ctx;
     const ds = dayState(dayId);
     const meta = dayMeta(dayId);
-    const list = (arr, update) => arr.map((p) => `<li class="pearl ${update ? 'upd' : ''}">${renderCloze(p)}</li>`).join('');
-
-    const wrap = el(`<div>
-      <p class="instructions">Tap a blank to reveal it. Export the deck to Anki (Cloze note type) when you're done.</p>
-      <div class="row tools">
-        <button class="btn" data-act="reveal">Reveal all</button>
-        <button class="btn" data-act="copy">Copy cloze text</button>
-        <button class="btn" data-act="download">Download Anki file</button>
-      </div>
-      <ol class="pearls">${list(station.pearls)}</ol>
-      ${station.updates?.length ? `<h3 class="upd-h">2026 Updates</h3><ol class="pearls">${list(station.updates, true)}</ol>` : ''}
-      <div class="finish-day"></div>
-    </div>`);
-    stage.appendChild(wrap);
-
-    wrap.querySelectorAll('.cloze').forEach((c) => {
-      const flip = () => c.classList.toggle('shown');
-      c.onclick = flip;
-      c.onkeydown = (e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); flip(); } };
-    });
-    wrap.querySelector('[data-act="reveal"]').onclick = (e) => {
-      const all = wrap.querySelectorAll('.cloze');
-      const show = ![...all].every((c) => c.classList.contains('shown'));
-      all.forEach((c) => c.classList.toggle('shown', show));
-      e.target.textContent = show ? 'Hide all' : 'Reveal all';
-    };
-
-    const allPearls = [...station.pearls, ...(station.updates || []).map((p) => `[2026 Update] ${p}`)];
-    wrap.querySelector('[data-act="copy"]').onclick = () => copyText(allPearls.join('\n')).then(() => toast('Copied to clipboard'));
-    wrap.querySelector('[data-act="download"]').onclick = () => {
-      const header = ['#separator:tab', '#html:false', '#notetype:Cloze', `#deck:${station.deck}`, '#tags column:3'].join('\n');
-      const rows = allPearls.map((p) => `${p.replace(/\t/g, ' ')}\tEndocrine Secrets 2009 · Day ${dayId}\tendo_rotation day${String(dayId).padStart(2, '0')}`);
-      download(`endo-day${String(dayId).padStart(2, '0')}-anki.txt`, header + '\n' + rows.join('\n') + '\n', 'text/plain');
-    };
-
-    const fin = wrap.querySelector('.finish-day');
     if (ds.completed) {
       fin.innerHTML = `<div class="card badge-earned">${meta.badge.icon} Day ${dayId} complete. Badge: <b>${esc(meta.badge.name)}</b></div>`;
       return;
@@ -899,8 +1070,7 @@
     const btn = el(`<button class="btn primary big">Complete Day ${dayId} ${meta.badge.icon}</button>`);
     btn.onclick = () => {
       ds.completed = true;
-      ds.stations[station.id] = { done: true, score: 0, max: 0 };
-      const core = coreStations(dayId).map((s) => ds.stations[s.id]);
+      const core = CONTENT[dayId].stations.map((s) => ds.stations[s.id]);
       const got = core.reduce((a, s) => a + (s?.score || 0), 0);
       const max = core.reduce((a, s) => a + (s?.max || 0), 0);
       const pct = max ? got / max : 0;
@@ -926,12 +1096,16 @@
     const parts = location.hash.replace(/^#\/?/, '').split('/').filter(Boolean);
     window.scrollTo(0, 0);
     renderHeader();
+    document.body.classList.remove('in-world');
     if (!state.profile) return viewOnboarding();
     if (parts[0] === 'day' && parts[2] === 's') return viewStation(+parts[1], parts[3]);
-    if (parts[0] === 'day') return viewDay(+parts[1]);
+    if (parts[0] === 'day') { sessionStorage.removeItem('endo.from'); return viewDay(+parts[1]); }
+    if (parts[0] === 'days') { sessionStorage.removeItem('endo.from'); return viewHome(); }
     if (parts[0] === 'badges') return viewBadges();
     if (parts[0] === 'settings') return viewSettings();
-    viewHome();
+    if (RPG.views[parts[0]]) return RPG.views[parts[0]]();
+    if (NET && NET.views[parts[0]]) return NET.views[parts[0]](parts.slice(1));
+    RPG.views.world();
   }
   window.addEventListener('hashchange', route);
   route();

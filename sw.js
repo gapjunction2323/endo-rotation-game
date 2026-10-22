@@ -1,11 +1,15 @@
-const CACHE = 'endo-rotation-v2';
+const CACHE = 'endo-rotation-v5';
 const ASSETS = [
   './',
   './index.html',
   './styles.css',
   './app.js',
+  './rpg.js',
+  './config.js',
+  './online.js',
   './content/days.js',
   './content/day1.js',
+  './content/rpg-data.js',
   './manifest.webmanifest',
   './icons/icon-192.png',
   './icons/icon-512.png',

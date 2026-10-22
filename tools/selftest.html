@@ -17,9 +17,11 @@ document.getElementById('f').addEventListener('load', async function run() {
   const errors = [];
   w.addEventListener('error', (e) => errors.push(e.message));
   try {
-    w.localStorage.clear();
     w.location.hash = '#/reset';
     await sleep(50);
+    w.localStorage.clear();
+    w.addEventListener('pagehide', () => w.localStorage.clear());
+    w.document.addEventListener('visibilitychange', () => w.localStorage.clear());
     w.location.reload();
     await new Promise((r) => this.addEventListener('load', r, { once: true }));
     w.addEventListener('error', (e) => errors.push(e.message));
@@ -48,6 +50,33 @@ document.getElementById('f').addEventListener('load', async function run() {
     const s0 = saved();
     check(`profile saved: ${JSON.stringify(s0 && s0.profile)}`, !!s0 && s0.profile && s0.profile.name === '<b>Ada</b>' && s0.profile.avatar === pick.dataset.av && s0.profile.createdAt > 0);
     check(`lastSaved set: ${s0 && s0.lastSaved}`, !!s0 && s0.lastSaved > Date.now() - 10000);
+    check('lands in hospital world', !!doc().getElementById('wc') && W.document.body.classList.contains('in-world'));
+    await sleep(600);
+    const dlg = doc().getElementById('dialog');
+    check('tutorial dialog auto-opens', !dlg.classList.contains('hidden') && dlg.textContent.includes('Chief Resident'));
+    for (let k = 0; k < 10 && !dlg.classList.contains('hidden'); k++) { const b = dlg.querySelector('.dlg-actions .btn'); if (b) b.click(); await sleep(20); }
+    check('tutorial completes and closes', dlg.classList.contains('hidden') && saved().rpg.seenIntro === true);
+    const f0 = W.EndoWorldDebug.frames;
+    await sleep(200);
+    if (W.EndoWorldDebug.frames === f0) {
+      log.push('SKIP walking check: no animation frames (headless --dump-dom)');
+    } else {
+      const p0 = { ...W.EndoWorldDebug.player };
+      W.dispatchEvent(new W.KeyboardEvent('keydown', { key: 'ArrowUp' }));
+      await sleep(400);
+      W.dispatchEvent(new W.KeyboardEvent('keyup', { key: 'ArrowUp' }));
+      const p1 = W.EndoWorldDebug.player;
+      check(`player walks with arrow keys (y ${p0.y.toFixed(2)} -> ${p1.y.toFixed(2)})`, p1.y < p0.y - 0.3);
+    }
+    W.EndoWorldDebug.interact('maya');
+    await sleep(20);
+    for (let k = 0; k < 3; k++) { const b = findBtn('#dialog .btn', 'Next'); if (b) b.click(); }
+    check('NPC dialog offers the DKA case', !!findBtn('#dialog .btn', 'Start case'));
+    findBtn('#dialog .btn', 'Start case').click();
+    await sleep(60);
+    check('Start case opens station with hospital back link', W.location.hash === '#/day/1/s/dka' && doc().querySelector('.back').textContent.includes('hospital'));
+    W.location.hash = '#/days';
+    await sleep(60);
     check('home shown with greeting', !!doc().querySelector('.day-list') && doc().querySelector('.greet').textContent.includes('Dr. <b>Ada</b>'));
     check('username escaped (no injected <b> in header/greeting)', !doc().querySelector('.me-name b, .greet b b'));
     const pill = doc().getElementById('savePill');
@@ -98,8 +127,27 @@ document.getElementById('f').addEventListener('load', async function run() {
           await sleep(10);
         }
       } else if (st.type === 'pearls') {
-        const clozes = doc().querySelectorAll('.cloze').length;
-        log.push('pearls rendered, cloze blanks: ' + clozes);
+        for (let k = 0; k < st.items.length; k++) {
+          const it = st.items[k];
+          const card = doc().querySelectorAll('.node')[k];
+          if (it.kind === 'mcq') {
+            [...card.querySelectorAll('.opt')].find((b) => b.textContent.includes(it.options.find((o) => o.ok).t)).click();
+          } else if (it.kind === 'recall') {
+            const typed = k === 0 ? 'no idea' : [...(it.accept.all || []), (it.accept.any || [''])[0]].join(' ');
+            card.querySelector('input').value = typed;
+            card.querySelector('form').requestSubmit();
+            if (k === 0) findBtn('.grade-row .btn', 'Yes').click();
+          } else {
+            card.querySelector('textarea').value = 'my explanation';
+            card.querySelector('.reveal').click();
+            card.querySelectorAll('.checklist input').forEach((c) => (c.checked = true));
+            findBtn('.feedback .btn', 'Score my').click();
+          }
+          await sleep(10);
+          card.querySelector('.feedback .btn.primary').click();
+          await sleep(10);
+        }
+        log.push('rapid-fire recap pearls: ' + doc().querySelectorAll('.pearl').length + ', highlights: ' + doc().querySelectorAll('.pearl mark').length);
         findBtn('.btn', 'Complete Day').click();
       }
       await sleep(60);
@@ -109,6 +157,44 @@ document.getElementById('f').addEventListener('load', async function run() {
     }
     const final = JSON.parse(W.localStorage.getItem('endoRotation.v1'));
     log.push('day completed: ' + final.days[1].completed + ' | bonusDay: ' + final.bonusDay);
+    await sleep(400);
+    while (!doc().getElementById('modal').classList.contains('hidden')) { closeModal(); await sleep(30); }
+    const rp = saved().rpg;
+    log.push(`rpg after Day 1: coins ${rp.coins} · mats ${JSON.stringify(rp.mats)} · items ${Object.keys(rp.items).join(',')} · header "${doc().querySelector('.rank-line b').textContent}"`);
+    check('coins, materials and boss loot granted', rp.coins > 100 && rp.mats.sample >= 5 && rp.mats.fragment >= 5 && rp.mats.note === 1 && Object.keys(rp.items).length === 2);
+    W.location.hash = '#/shop';
+    await sleep(60);
+    const c0 = saved().rpg.coins;
+    doc().querySelector('[data-buy="coffee"]').click();
+    await sleep(30);
+    check(`shop purchase (coins ${c0} -> ${saved().rpg.coins}, coffee ${saved().rpg.cons.coffee})`, saved().rpg.cons.coffee === 1 && saved().rpg.coins === c0 - 20);
+    W.location.hash = '#/lab';
+    await sleep(60);
+    doc().querySelector('[data-craft="r_scroll"]').click();
+    await sleep(30);
+    check(`craft scroll (fragments left ${saved().rpg.mats.fragment}, scrolls ${saved().rpg.cons.scroll})`, saved().rpg.cons.scroll >= 1 && saved().rpg.mats.fragment === rp.mats.fragment - 2);
+    W.location.hash = '#/character';
+    await sleep(60);
+    const pts0 = doc().querySelector('.pts').textContent;
+    doc().querySelector('[data-skill="diff"]').click();
+    await sleep(30);
+    check(`spend skill point (${pts0} -> diff rank ${saved().rpg.skills.diff})`, saved().rpg.skills.diff === 1);
+    doc().querySelector('[data-use="coffee"]').click();
+    await sleep(30);
+    check('use coffee -> buff active', saved().rpg.buffs.coffee === 1);
+    const eq = doc().querySelector('[data-equip]:not(.sel)');
+    if (eq) { eq.click(); await sleep(30); }
+    check(`equip loot (${JSON.stringify(saved().rpg.equip)})`, Object.keys(saved().rpg.equip).length >= 1);
+    W.location.hash = '#/day/1/s/dka';
+    await sleep(60);
+    const nb = doc().querySelector('.narrow');
+    check(`narrow button on replay (${nb && nb.textContent.trim()})`, !!nb);
+    const enabledBefore = doc().querySelectorAll('.node .opt:not(:disabled)').length;
+    nb.click();
+    check(`narrow removes a wrong option (${enabledBefore} -> ${doc().querySelectorAll('.node .opt:not(:disabled)').length})`, doc().querySelectorAll('.node .opt:not(:disabled)').length === enabledBefore - 1);
+    W.location.hash = '#/';
+    await sleep(100);
+    check('world renders after returning', !!doc().getElementById('wc'));
 
     const api = W.EndoRotation;
     const snap = (s) => JSON.stringify({ xp: s.xp, days: s.days, bonusDay: s.bonusDay, profile: s.profile });

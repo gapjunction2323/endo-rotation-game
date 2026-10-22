@@ -31,6 +31,19 @@ No-tools alternative: drag this folder onto https://app.netlify.com/drop.
 
 Progress (XP, badges, scores) is saved on the device in localStorage.
 
+## Online play (optional)
+
+Accounts, cloud sync, guilds with chat and a weekly raid boss, quiz duels, and a player-run Trading Post run on a free [Supabase](https://supabase.com) project. Without one, everything else works offline.
+
+1. Create a Supabase project (free tier is plenty for an intern class).
+2. **SQL Editor → New query**: paste `supabase/schema.sql` and run it.
+3. **Authentication → Sign In / Providers → Email**: turn off **Confirm email** so residents can sign up and play immediately (optional).
+4. **Project Settings → API**: copy the **Project URL** and the **anon public** key into `config.js`, then redeploy.
+
+Residents sign in at the Badge Office in the lobby (or the 🌐 button). Signed-in players see each other walking the hospital.
+
+Coins, gear, and XP live in each player's own save. The server enforces the shared parts (guild membership, raid HP and daily attack limits, duel scores, market sales) but trusts each client's inventory, which is fine for a class of friends but not for a public game.
+
 ## Adding a day
 
 1. Create `content/dayN.js` that sets `window.ENDO_CONTENT[N] = { scene, objectives, source, stations: [...] }`. Use `content/day1.js` as the template. Station types are `consult`, `pager`, `match`, `sort`, `boss`, and `pearls`.
@@ -40,5 +53,7 @@ Progress (XP, badges, scores) is saved on the device in localStorage.
 ## Testing
 
 With the local server running, open `http://localhost:8080/tools/selftest.html`. It plays through all of Day 1 automatically and reports the score for each station and any errors.
+
+`tools/nettest.html` exercises online play (sign-up, cloud sync, guild, chat, raid, duels, market, presence) against an in-memory fake of Supabase in `tools/netmock.js`. `tools/netmock.html` is the full game wired to that fake, for clicking around without a server.
 
 Icons are regenerated with `tools\make-icons.ps1`.

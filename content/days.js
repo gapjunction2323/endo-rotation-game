@@ -15,13 +15,4 @@ window.ENDO_DAYS = [
   { id: 14, title: 'Grand Rounds Final Boss', subtitle: 'Mixed cases, aging, Top 100 Secrets', chapters: [61, 57], badge: { icon: '👑', name: 'Attending Status' }, boss: true }
 ];
 
-window.ENDO_RANKS = [
-  { xp: 0, name: 'Intern' },
-  { xp: 400, name: 'Junior Resident' },
-  { xp: 900, name: 'Senior Resident' },
-  { xp: 1500, name: 'Chief Resident' },
-  { xp: 2100, name: 'Endo Fellow' },
-  { xp: 2600, name: 'Attending' }
-];
-
 window.ENDO_CONTENT = window.ENDO_CONTENT || {};

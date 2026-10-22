@@ -335,8 +335,97 @@ window.ENDO_CONTENT[1] = {
       id: 'pearls',
       type: 'pearls',
       title: 'Rapid-Fire Synthesis',
-      icon: '💎',
-      deck: 'Endo Rotation::Day 01 Sugar Crisis',
+      icon: '⚡',
+      intro: 'Fifteen rapid-fire items in three formats: type it from memory, pick the best answer, and explain the why. Interleaving formats is what makes it stick.',
+      items: [
+        { kind: 'recall', q: 'Name the predominant ketone in untreated DKA.',
+          accept: { any: ['hydroxybutyrate', 'bhb', 'ohb', 'beta hydroxy', 'β-hydroxy'] },
+          a: 'Beta-hydroxybutyrate. The nitroprusside test detects only acetoacetate, so it misses it.' },
+        { kind: 'mcq', q: 'A DKA patient arrives with K 3.0 mEq/L. What do you do before starting insulin?',
+          options: [
+            { t: 'Hold insulin and replete potassium first', ok: true },
+            { t: 'Start insulin at 0.1 U/kg/h and recheck K in 2 hours' },
+            { t: 'Give sodium bicarbonate to shift K into cells' },
+            { t: 'Start insulin and add 20 mEq KCl per liter' }
+          ],
+          a: 'Insulin pushes potassium into cells. Starting it with K below 3.3 risks fatal arrhythmia.', update: true },
+        { kind: 'why', q: 'Why is serum potassium often high on admission in DKA, yet these patients need potassium replacement?',
+          points: [
+            'Acidosis and insulin deficiency shift potassium out of cells',
+            'Osmotic diuresis and vomiting deplete total-body potassium',
+            'Insulin therapy drives potassium back into cells, so serum K falls fast'
+          ] },
+        { kind: 'recall', q: 'At what glucose (mg/dL) do you add dextrose to the fluids during DKA treatment?',
+          accept: { any: ['250'] },
+          a: '250 mg/dL. Add D5–D10 and keep the insulin running until the gap closes.' },
+        { kind: 'mcq', q: 'Which finding is NOT caused by HHS itself and should prompt a search for a precipitant?',
+          options: [
+            { t: 'Fever', ok: true },
+            { t: 'Leukocytosis' },
+            { t: 'Elevated BUN and creatinine' },
+            { t: 'Hypertriglyceridemia' }
+          ],
+          a: 'Fever is not part of HHS. Think infection first, then MI, stroke, pancreatitis, or GI bleeding.' },
+        { kind: 'why', q: 'Why do patients with HHS usually avoid ketoacidosis even though their glucose runs higher than in DKA?',
+          points: [
+            'Residual insulin secretion persists in type 2 diabetes',
+            'Even small amounts of insulin suppress lipolysis and ketogenesis',
+            'Counterregulatory hormone levels are lower than in DKA'
+          ] },
+        { kind: 'recall', q: 'Write the formula for effective serum osmolality.',
+          accept: { all: ['2', 'na', '18'] },
+          a: '2 × Na + glucose / 18. Above 340 mOsm/L, coma can be attributed to HHS.' },
+        { kind: 'mcq', q: 'Your patient needed 18 units of IV insulin over the last 6 hours. Using the book\'s rule, what is the estimated total daily SC dose?',
+          options: [
+            { t: '72 units', ok: true },
+            { t: '36 units' },
+            { t: '108 units' },
+            { t: '18 units' }
+          ],
+          a: '4 × 18 = 72 U per day, split 50% basal (36 U) and 50% bolus.' },
+        { kind: 'why', q: 'Why must you never stop an IV insulin drip without giving subcutaneous insulin first?',
+          points: [
+            'IV insulin acts for only about an hour after the drip stops',
+            'The gap leaves no insulin, so ketogenesis restarts (rebound DKA)',
+            'SC insulin takes time to work: rapid-acting about 30 min, basal 2–3 hours'
+          ] },
+        { kind: 'recall', q: 'What is the typical fluid deficit in HHS, in liters?',
+          accept: { any: ['9', '10', '11', '12'] },
+          a: '9–12 L. Replace half over the first 5–12 hours and the rest over the next 12.' },
+        { kind: 'mcq', q: 'On prednisone 60 mg each morning: fasting glucose 120, 6 PM glucose 350. Best insulin adjustment?',
+          options: [
+            { t: 'Morning NPH timed to the prednisone', ok: true },
+            { t: 'Increase bedtime glargine' },
+            { t: 'Regular insulin sliding scale' },
+            { t: 'Add glyburide' }
+          ],
+          a: 'Steroids mainly raise afternoon and evening glucose. A 12-hour insulin given in the morning matches that curve.' },
+        { kind: 'mcq', q: 'Which hypoglycemia symptom is neuroglycopenic rather than adrenergic?',
+          options: [
+            { t: 'Confusion', ok: true },
+            { t: 'Tremor' },
+            { t: 'Palpitations' },
+            { t: 'Diaphoresis' }
+          ],
+          a: 'Neuroglycopenic symptoms come from the brain running out of fuel: confusion, behavior change, seizures, coma.' },
+        { kind: 'why', q: 'Why is sliding-scale insulin alone a bad inpatient regimen?',
+          points: [
+            'It is reactive: it treats high glucose after it happens instead of preventing it',
+            'Repeated doses stack and cause hypoglycemia',
+            'It ignores basal and mealtime insulin needs'
+          ] },
+        { kind: 'recall', q: 'Name the three components of effective inpatient insulin therapy.',
+          accept: { all: ['basal', 'correct'], any: ['prandial', 'nutrition', 'bolus', 'meal'] },
+          a: 'Basal + nutritional (prandial) + correction insulin.' },
+        { kind: 'mcq', q: 'A family member calls: their husband is on insulin, unresponsive, glucose 35. What should they do?',
+          options: [
+            { t: 'Glucagon 1 mg IM or glucose gel inside the cheek, then call 911', ok: true },
+            { t: 'Pour juice into his mouth' },
+            { t: 'Give his usual insulin dose and wait' },
+            { t: 'Wait 15 minutes and recheck' }
+          ],
+          a: 'Never give liquids by mouth to an unconscious patient because of aspiration risk.' }
+      ],
       pearls: [
         'The DKA triad is {{c1::metabolic acidosis}}, {{c2::hyperglycemia}}, and {{c3::ketonemia/ketonuria}}.',
         'The predominant ketone in untreated DKA is {{c1::beta-hydroxybutyrate}}, which the nitroprusside ketone test {{c2::does not detect}}.',
