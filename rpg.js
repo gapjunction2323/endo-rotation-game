@@ -544,6 +544,26 @@ window.EndoRPG = {
             c2d.fillStyle = '#93c5fd'; c2d.beginPath(); c2d.ellipse(x + w / 2, y + h * 0.55, w * 0.28, h * 0.2, 0, 0, Math.PI * 2); c2d.fill();
             c2d.fillStyle = '#64748b'; c2d.fillRect(x + w / 2 - 2, y + p * 1.5, 4, h * 0.2);
             break;
+          case 'stove':
+            c2d.fillStyle = '#cbd5e1'; rr(x, y + p / 2, w, h - p, T * 0.08); c2d.fill();
+            c2d.strokeStyle = '#334155'; c2d.lineWidth = 2;
+            for (let i = 0; i < d.w * 2; i++) { c2d.beginPath(); c2d.arc(x + (i + 0.5) * (w / (d.w * 2)), y + h * 0.45, T * 0.13, 0, Math.PI * 2); c2d.stroke(); }
+            break;
+          case 'treadmill':
+            c2d.fillStyle = '#334155'; rr(x + p / 2, y + p, w - p, h - 2 * p, T * 0.1); c2d.fill();
+            c2d.fillStyle = '#64748b'; rr(x + p * 1.5, y + p * 2, w - p * 3, h - p * 4, T * 0.06); c2d.fill();
+            c2d.fillStyle = '#38bdf8'; rr(x + w - p * 3, y + p * 1.2, p * 2, h - p * 2.4, T * 0.04); c2d.fill();
+            break;
+          case 'scale':
+            c2d.fillStyle = '#94a3b8'; rr(x + p * 1.5, y + p * 1.5, w - p * 3, h - p * 3, T * 0.1); c2d.fill();
+            c2d.fillStyle = '#0f172a'; rr(x + w * 0.3, y + h * 0.28, w * 0.4, h * 0.2, T * 0.04); c2d.fill();
+            c2d.fillStyle = '#4ade80'; c2d.fillRect(x + w * 0.36, y + h * 0.33, w * 0.28, h * 0.1);
+            break;
+          case 'fountain':
+            c2d.fillStyle = '#94a3b8'; c2d.beginPath(); c2d.arc(x + w / 2, y + h / 2, Math.min(w, h) * 0.46, 0, Math.PI * 2); c2d.fill();
+            c2d.fillStyle = '#7dd3fc'; c2d.beginPath(); c2d.arc(x + w / 2, y + h / 2, Math.min(w, h) * 0.38, 0, Math.PI * 2); c2d.fill();
+            c2d.fillStyle = '#e0f2fe'; c2d.beginPath(); c2d.arc(x + w / 2, y + h / 2, Math.min(w, h) * 0.1, 0, Math.PI * 2); c2d.fill();
+            break;
           case 'mat':
             c2d.fillStyle = 'rgba(239,68,68,.18)'; rr(x, y, w, h, T * 0.3); c2d.fill();
             c2d.strokeStyle = 'rgba(239,68,68,.45)'; c2d.lineWidth = 3; c2d.beginPath(); c2d.arc(x + w / 2, y + h / 2, Math.min(w, h) * 0.3, 0, Math.PI * 2); c2d.stroke();

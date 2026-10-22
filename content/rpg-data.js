@@ -122,7 +122,7 @@ window.ENDO_RPG = {
         { t: 'fridge', x: 1, y: 11, w: 2, h: 1 }, { t: 'shelf', x: 4, y: 11, w: 9, h: 1 }, { t: 'counter', x: 3, y: 13, w: 4, h: 1 },
         // diabetes education: whiteboard and teaching tables
         { t: 'whiteboard', x: 2, y: 16, w: 5, h: 1 }, { t: 'table', x: 2, y: 18, w: 3, h: 1 }, { t: 'table', x: 7, y: 18, w: 3, h: 1 },
-        { t: 'plant', x: 1, y: 20, w: 1, h: 1 },
+        { t: 'plant', x: 13, y: 16, w: 1, h: 1 },
         // staff lounge: couch, coffee counter, study desk
         { t: 'sofa', x: 1, y: 22, w: 4, h: 1 }, { t: 'table', x: 2, y: 24, w: 2, h: 1 }, { t: 'counter', x: 7, y: 22, w: 3, h: 1 },
         { t: 'desk', x: 9, y: 26, w: 3, h: 1 }, { t: 'plant', x: 13, y: 27, w: 1, h: 1 },
@@ -153,6 +153,86 @@ window.ENDO_RPG = {
         { id: 'board', emoji: '📋', name: 'Rotation Board', obj: true, x: 15.6, y: 26.4, act: { type: 'days' },
           lines: ['The full 14-day rotation schedule, briefings, and scores.'] },
         { id: 'elevator', emoji: '🛗', name: 'Elevator', obj: true, x: 17, y: 27.4, act: { type: 'elevator' },
+          lines: ['Each floor holds one day of the rotation. The ED, ICU, pharmacy, and guild hall are on Floor 1.'] }
+      ]
+    },
+    3: {
+      w: 38, h: 30,
+      spawn: { x: 18.5, y: 27.2 },
+      arrive: { x: 18.5, y: 27.2 },
+      name: 'Cardiometabolic & Sleep',
+      theme: { void: '#0d1d1c', wall: '#2e5350', wallTop: '#46736e', label: 'rgba(22,62,58,.6)' },
+      // A loop corridor around a central healing garden, with clinics on the outside of the ring.
+      rooms: [
+        { id: 'hall', name: '', x: 8, y: 8, w: 22, h: 3, color: '#e2ebe6' },
+        { id: 'hallS', name: '', x: 8, y: 19, w: 22, h: 3, color: '#e2ebe6' },
+        { id: 'hallW', name: '', x: 8, y: 11, w: 3, h: 8, color: '#e2ebe6' },
+        { id: 'hallE', name: '', x: 27, y: 11, w: 3, h: 8, color: '#e2ebe6' },
+        { id: 'sleep', name: 'Sleep Lab', x: 1, y: 1, w: 12, h: 6, color: '#d2d8ee' },
+        { id: 'lipid', name: 'Lipid Clinic', x: 14, y: 1, w: 10, h: 6, color: '#fbe2d4' },
+        { id: 'stepdown', name: 'Step-Down Unit 3E', x: 25, y: 1, w: 12, h: 6, color: '#dbe5f3' },
+        { id: 'kitchen', name: 'Teaching Kitchen', x: 1, y: 9, w: 6, h: 12, color: '#f5ebcd' },
+        { id: 'weight', name: 'Weight Management', x: 31, y: 9, w: 6, h: 12, color: '#e0eed8' },
+        { id: 'garden', name: 'Healing Garden', x: 12, y: 12, w: 14, h: 6, color: '#cde7c3' },
+        { id: 'bari', name: 'Bariatric Surgery Clinic', x: 1, y: 23, w: 12, h: 6, color: '#eadff1' },
+        { id: 'lobby', name: 'Elevator Lobby', x: 14, y: 23, w: 10, h: 6, color: '#e4e7ee' },
+        { id: 'work', name: 'Staff Workroom', x: 25, y: 23, w: 12, h: 6, color: '#eee4d6' }
+      ],
+      doors: [
+        { x: 9, y: 7, w: 1, h: 1 }, { x: 18, y: 7, w: 2, h: 1 }, { x: 28, y: 7, w: 1, h: 1 },
+        { x: 7, y: 14, w: 1, h: 2 }, { x: 30, y: 14, w: 1, h: 2 },
+        { x: 18, y: 11, w: 2, h: 1 }, { x: 18, y: 18, w: 2, h: 1 },
+        { x: 9, y: 22, w: 1, h: 1 }, { x: 17, y: 22, w: 4, h: 1 }, { x: 28, y: 22, w: 1, h: 1 }
+      ],
+      decor: [
+        // sleep lab: three polysomnography bays and the tech station
+        { t: 'bed', x: 2, y: 1, w: 1, h: 2 }, { t: 'monitor', x: 3, y: 1, w: 1, h: 1 },
+        { t: 'bed', x: 6, y: 1, w: 1, h: 2 }, { t: 'monitor', x: 7, y: 1, w: 1, h: 1 },
+        { t: 'bed', x: 10, y: 1, w: 1, h: 2 }, { t: 'monitor', x: 11, y: 1, w: 1, h: 1 },
+        { t: 'counter', x: 2, y: 5, w: 3, h: 1 }, { t: 'monitor', x: 5, y: 5, w: 1, h: 1 },
+        // lipid clinic
+        { t: 'whiteboard', x: 15, y: 1, w: 4, h: 1 }, { t: 'exam', x: 15, y: 3, w: 2, h: 1 },
+        { t: 'desk', x: 20, y: 5, w: 3, h: 1 }, { t: 'sink', x: 23, y: 1, w: 1, h: 1 },
+        // step-down unit
+        { t: 'bed', x: 26, y: 1, w: 1, h: 2 }, { t: 'monitor', x: 27, y: 1, w: 1, h: 1 },
+        { t: 'bed', x: 30, y: 1, w: 1, h: 2 }, { t: 'monitor', x: 31, y: 1, w: 1, h: 1 },
+        { t: 'bed', x: 34, y: 1, w: 1, h: 2 }, { t: 'monitor', x: 35, y: 1, w: 1, h: 1 },
+        { t: 'counter', x: 33, y: 5, w: 3, h: 1 },
+        // teaching kitchen
+        { t: 'stove', x: 1, y: 9, w: 2, h: 1 }, { t: 'counter', x: 3, y: 9, w: 4, h: 1 },
+        { t: 'table', x: 2, y: 13, w: 3, h: 1 }, { t: 'table', x: 2, y: 17, w: 3, h: 1 }, { t: 'fridge', x: 5, y: 11, w: 2, h: 1 },
+        // weight management: treadmills, a bariatric scale, an exam table
+        { t: 'treadmill', x: 31, y: 9, w: 2, h: 1 }, { t: 'treadmill', x: 34, y: 9, w: 2, h: 1 },
+        { t: 'scale', x: 36, y: 12, w: 1, h: 1 }, { t: 'chairs', x: 32, y: 16, w: 3, h: 1 }, { t: 'exam', x: 33, y: 19, w: 2, h: 1 },
+        // healing garden
+        { t: 'fountain', x: 18, y: 14, w: 2, h: 2 },
+        { t: 'plant', x: 12, y: 12, w: 1, h: 1 }, { t: 'plant', x: 25, y: 12, w: 1, h: 1 },
+        { t: 'plant', x: 21, y: 12, w: 1, h: 1 }, { t: 'plant', x: 25, y: 17, w: 1, h: 1 },
+        { t: 'plant', x: 15, y: 12, w: 1, h: 1 }, { t: 'plant', x: 22, y: 17, w: 1, h: 1 },
+        // bariatric surgery clinic
+        { t: 'exam', x: 2, y: 24, w: 2, h: 1 }, { t: 'exam', x: 6, y: 24, w: 2, h: 1 },
+        { t: 'scale', x: 12, y: 23, w: 1, h: 1 }, { t: 'desk', x: 8, y: 27, w: 3, h: 1 },
+        // elevator lobby
+        { t: 'chairs', x: 14, y: 25, w: 3, h: 1 }, { t: 'chairs', x: 21, y: 25, w: 3, h: 1 },
+        { t: 'plant', x: 14, y: 23, w: 1, h: 1 }, { t: 'plant', x: 23, y: 28, w: 1, h: 1 },
+        // staff workroom
+        { t: 'sofa', x: 25, y: 23, w: 3, h: 1 }, { t: 'counter', x: 31, y: 23, w: 3, h: 1 },
+        { t: 'table', x: 27, y: 26, w: 3, h: 1 }, { t: 'desk', x: 33, y: 27, w: 3, h: 1 }
+      ],
+      npcs: [
+        { id: 'maya', emoji: '🛏️', name: 'Step-down patient', color: '#f87171', x: 30.5, y: 3.8, act: { type: 'station' } },
+        { id: 'alvarez', emoji: '🧑', name: 'Bariatric clinic patient', color: '#fbbf24', x: 4.5, y: 26.2, act: { type: 'station' } },
+        { id: 'ortiz', emoji: '🧑🏽‍💻', name: 'Sleep Tech', color: '#60a5fa', x: 8.5, y: 4.6, act: { type: 'station' } },
+        { id: 'noor', emoji: '👩🏾‍⚕️', name: 'Lipid Clinic Nurse', color: '#f59e0b', x: 17.5, y: 4.8, act: { type: 'station' } },
+        { id: 'sam', emoji: '🧑🏾‍💼', name: 'Pharmacy Resident Sam', color: '#a3e635', x: 33.5, y: 13.6, act: { type: 'station' } },
+        { id: 'okafor', emoji: '👨🏽‍🏫', name: 'Dr. Okafor, Attending', color: '#f472b6', x: 15.5, y: 15.5, act: { type: 'station' } },
+        { id: 'carrel', emoji: '📚', name: 'Study Carrel', obj: true, x: 34.5, y: 26.3, act: { type: 'station' } },
+        { id: 'chef', emoji: '🧑🏻‍🍳', name: 'Dietitian Rosa', color: '#fb923c', x: 4.5, y: 15.2, act: { type: 'talk' },
+          lines: ['Welcome to the teaching kitchen. Here is the secret about diets: none of them is "best." The one that works is the one a patient can stick to.',
+            'A 5–10% weight loss is a realistic goal, and it already lowers blood pressure and LDL and markedly cuts the risk of diabetes.'] },
+        { id: 'board', emoji: '📋', name: 'Rotation Board', obj: true, x: 16, y: 27.6, act: { type: 'days' },
+          lines: ['The full 14-day rotation schedule, briefings, and scores.'] },
+        { id: 'elevator', emoji: '🛗', name: 'Elevator', obj: true, x: 18.5, y: 28.4, act: { type: 'elevator' },
           lines: ['Each floor holds one day of the rotation. The ED, ICU, pharmacy, and guild hall are on Floor 1.'] }
       ]
     }

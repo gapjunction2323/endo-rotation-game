@@ -288,6 +288,29 @@ document.getElementById('f').addEventListener('load', async function run() {
     const d2max = W.ENDO_CONTENT[2].stations.length;
     check(`Day 2 complete (${Object.values(d2.stations).filter((s) => s.done).length}/${d2max} stations, floor reset to ${saved().rpg.floor})`, d2.completed && Object.values(d2.stations).filter((s) => s.done).length === d2max && saved().rpg.floor === null);
 
+    W.location.hash = '#/';
+    await sleep(150);
+    const f3Label = doc().querySelector('.hud-floor').textContent;
+    check(`world opens on Floor 3 after Day 2 ("${f3Label}")`, f3Label.startsWith('Floor 3') && f3Label.includes('Cardiometabolic'));
+    const f3rooms = W.ENDO_RPG.floors[3].rooms.map((r) => r.name).filter(Boolean);
+    check(`Floor 3 has its own layout without an ED or ICU (${f3rooms.join(', ')})`, !f3rooms.some((n) => /emergency|icu/i.test(n)) && f3rooms.join() !== f2rooms.join());
+    const sp = saved().rpg.pos;
+    check(`arrived at the Floor 3 elevator (pos ${sp && `${sp.x},${sp.y},f${sp.f}`})`, !sp || sp.f !== 3 || Math.hypot(sp.x - 18.5, sp.y - 27.2) < 0.5);
+    W.EndoWorldDebug.interact('maya');
+    await sleep(20);
+    for (let k = 0; k < 3; k++) { const b = findBtn('#dialog .btn', 'Next'); if (b) b.click(); }
+    check(`Day 3 patient on the step-down unit (${doc().querySelector('#dialog .dlg-head b').textContent})`, doc().querySelector('#dialog .dlg-head b').textContent.includes('Novak') && doc().querySelector('#dialog .dlg-info').textContent.includes('Milkshake'));
+    doc().querySelector('#dialog .dlg-x').click();
+    W.EndoWorldDebug.interact('chef');
+    await sleep(20);
+    check('Dietitian Rosa talks without a station', doc().querySelector('#dialog .dlg-head b').textContent.includes('Rosa'));
+    doc().querySelector('#dialog .dlg-x').click();
+    await playDay(3);
+    while (!doc().getElementById('modal').classList.contains('hidden')) { closeModal(); await sleep(30); }
+    const d3 = saved().days[3];
+    const d3max = W.ENDO_CONTENT[3].stations.length;
+    check(`Day 3 complete (${Object.values(d3.stations).filter((s) => s.done).length}/${d3max} stations)`, d3.completed && Object.values(d3.stations).filter((s) => s.done).length === d3max);
+
     log.push('errors: ' + (errors.length ? errors.join(' ; ') : 'none'));
   } catch (e) {
     log.push('EXCEPTION: ' + e.message + '\n' + e.stack);

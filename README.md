@@ -55,7 +55,7 @@ Coins, gear, and XP live in each player's own save. The server enforces the shar
 
 ## Testing
 
-With the local server running, open `http://localhost:8080/tools/selftest.html`. It plays through all of Day 1 automatically and reports the score for each station and any errors.
+With the local server running, open `http://localhost:8080/tools/selftest.html`. It plays through Days 1–3 automatically, walks the floors, and reports the score for each station and any errors.
 
 `tools/nettest.html` exercises online play (sign-up, cloud sync, guild, chat, raid, duels, market, presence) against an in-memory fake of Supabase in `tools/netmock.js`. `tools/netmock.html` is the full game wired to that fake, for clicking around without a server.
 
