@@ -109,7 +109,7 @@ window.ENDO_RPG = {
       { t: 'bed', x: 12, y: 3, w: 1, h: 2 }, { t: 'monitor', x: 13, y: 3, w: 1, h: 1 }, { t: 'bed', x: 16, y: 3, w: 1, h: 2 }, { t: 'monitor', x: 17, y: 3, w: 1, h: 1 },
       { t: 'shelf', x: 20, y: 2, w: 9, h: 1 }, { t: 'counter', x: 21, y: 5, w: 7, h: 1 },
       { t: 'bench', x: 31, y: 4, w: 3, h: 1 }, { t: 'bench', x: 35, y: 4, w: 3, h: 1 }, { t: 'bench', x: 31, y: 9, w: 3, h: 1 },
-      { t: 'shelf', x: 1, y: 17, w: 9, h: 1 }, { t: 'table', x: 2, y: 22, w: 2, h: 1 }, { t: 'table', x: 6, y: 22, w: 2, h: 1 }, { t: 'desk', x: 7, y: 25, w: 2, h: 1 },
+      { t: 'shelf', x: 1, y: 17, w: 4, h: 1 }, { t: 'shelf', x: 6, y: 17, w: 4, h: 1 }, { t: 'table', x: 2, y: 22, w: 2, h: 1 }, { t: 'table', x: 6, y: 22, w: 2, h: 1 }, { t: 'desk', x: 7, y: 25, w: 2, h: 1 },
       { t: 'plant', x: 11, y: 17, w: 1, h: 1 }, { t: 'plant', x: 20, y: 17, w: 1, h: 1 }, { t: 'plant', x: 11, y: 26, w: 1, h: 1 }, { t: 'plant', x: 20, y: 26, w: 1, h: 1 },
       { t: 'desk', x: 14, y: 24, w: 4, h: 1 },
       { t: 'banner', x: 23, y: 17, w: 1, h: 1 }, { t: 'banner', x: 28, y: 17, w: 1, h: 1 }, { t: 'table', x: 24, y: 23, w: 4, h: 1 },
