@@ -120,10 +120,11 @@ window.EndoRPG = {
       if (b > a) {
         const oldTitle = titleFor(a);
         const title = titleFor(b);
-        setTimeout(() => G.showModal(`<div class="big-emoji">⬆️</div><h2>Level ${b}!</h2>
+        G.toast(`⬆️ Level ${b}!`, 'good');
+        G.celebrate(`<div class="big-emoji">⬆️</div><h2>Level ${b}!</h2>
           <p>+${b - a} skill point${b - a > 1 ? 's' : ''} to spend in your 🎒 bag.</p>
           ${title !== oldTitle ? `<p>New title: <b>${title}</b></p>` : ''}`,
-          [{ label: 'Later', cls: 'btn ghost' }, { label: 'Spend points', cls: 'btn primary', onClick: () => G.go('#/character') }]), 300);
+          [{ label: 'Later', cls: 'btn ghost' }, { label: 'Spend points', cls: 'btn primary', onClick: () => G.go('#/character') }]);
       }
       return coins;
     }

@@ -11,7 +11,7 @@
   const modal = document.getElementById('modal');
 
   // ---------- state ----------
-  const fresh = () => ({ xp: 0, days: {}, bonusDay: null, unlockAll: false, hideInstall: false, profile: null, lastSaved: null, rpg: null });
+  const fresh = () => ({ xp: 0, days: {}, bonusDay: null, unlockAll: false, hideInstall: false, profile: null, lastSaved: null, rpg: null, resume: {} });
   const AVATARS = ['🧑‍⚕️', '👩🏽‍⚕️', '👨🏿‍⚕️', '👩🏻‍⚕️', '👨🏾‍⚕️', '🩺', '🧠', '🦋', '🩸', '💉', '🦴', '🧬', '🫀', '🔬', '🦉', '🐙'];
   const APP_ID = 'endo-rotation';
   const cleanName = (s) => String(s || '').replace(/\s+/g, ' ').trim().replace(/^dr(\.\s*|\s+)/i, '').slice(0, 20).trim();
@@ -147,6 +147,19 @@
     modal.classList.remove('hidden');
   }
 
+  // Popups that could navigate away wait until the current station is finished or left.
+  let inStation = false;
+  let updateReady = false;
+  const held = [];
+  function celebrate(html, buttons) {
+    if (inStation) held.push([html, buttons]);
+    else setTimeout(() => showModal(html, buttons), 300);
+  }
+  function leaveStation() {
+    inStation = false;
+    held.splice(0).forEach(([html, buttons]) => setTimeout(() => showModal(html, buttons), 300));
+  }
+
   function award(dayId, n, practice, xpPct = 0) {
     if (practice || n <= 0) return 0;
     const streak = state.bonusDay === dayId;
@@ -225,6 +238,7 @@
     out.hideInstall = !!out.hideInstall;
     if (out.profile) out.profile = { name: cleanName(out.profile.name), avatar: out.profile.avatar, createdAt: isNum(out.profile.createdAt) ? out.profile.createdAt : Date.now() };
     if (!isNum(out.lastSaved)) out.lastSaved = null;
+    if (!isObj(out.resume)) out.resume = {};
     return RPG.ensure(out);
   }
 
@@ -322,7 +336,7 @@
   const coreDone = (id) => coreStations(id).every((s) => dayState(id).stations[s.id]?.done);
 
   const RPG = window.EndoRPG.init({
-    getState: () => state, save, toast, showModal, go, el, esc, buzz, renderHeader,
+    getState: () => state, save, toast, showModal, celebrate, go, el, esc, buzz, renderHeader,
     app, hdr, DAYS, CONTENT, dayState, isUnlocked, coreDone, hasContent, net: () => NET
   });
   RPG.ensure(state);
@@ -569,23 +583,38 @@
     const fromWorld = sessionStorage.getItem('endo.from') === 'world';
     const back = fromWorld ? ['#/', '← Back to the hospital'] : [`#/day/${dayId}`, `← Day ${dayId}`];
     const mod = RPG.stationStart(station, practice);
+    const key = `${dayId}:${sid}`;
+    const saved = ['consult', 'pager', 'boss', 'pearls'].includes(station.type) && state.resume[key]?.i > 0 ? state.resume[key] : null;
     app.innerHTML = `
       <a class="back" href="${back[0]}">${back[1]}</a>
       <h1 class="station-h">${station.icon} ${esc(station.title)}</h1>
       ${practice ? '<div class="practice">Practice mode: no XP on replays (you can still find coins and materials)</div>' : ''}
+      ${saved ? `<div class="buff resume">↩️ Picking up where you left off, at question ${saved.i + 1}. <button class="linkish" data-act="restart">Start over</button></div>` : ''}
       ${mod.banners.map((b) => `<div class="buff">${b}</div>`).join('')}
       <div id="stage"></div>`;
     const stage = document.getElementById('stage');
+    app.querySelector('[data-act="restart"]')?.addEventListener('click', () => {
+      delete state.resume[key];
+      save();
+      route();
+    });
+    inStation = true;
 
     const ctx = {
-      dayId, station, practice, stage, mod,
+      dayId, station, practice, stage, mod, resumed: saved,
       award: (n) => award(dayId, n, practice, mod.xpPct),
+      checkpoint(data) {
+        state.resume[key] = data;
+        save();
+      },
       finish(score, max, { quiet = false } = {}) {
         const prev = ds.stations[sid];
         ds.stations[sid] = { done: true, score: Math.max(prev?.score || 0, practice ? 0 : score), max };
         if (practice && prev) ds.stations[sid].score = prev.score;
+        delete state.resume[key];
         const loot = RPG.stationComplete(dayId, station, practice);
         save();
+        leaveStation();
         if (quiet) return loot;
         const unlockedPearls = !practice && coreDone(dayId) && station.type !== 'pearls';
         const card = el(`<div class="card finish">
@@ -610,9 +639,9 @@
     const isConsult = station.type === 'consult';
     const nodes = station.nodes;
     const max = nodes.reduce((sum, n) => sum + (n.xp || 0), 0);
-    let score = 0;
+    let score = ctx.resumed?.score || 0;
     const maxStability = 3 + ctx.mod.stability;
-    let stability = maxStability;
+    let stability = Math.min(maxStability, ctx.resumed?.stability || maxStability);
 
     if (isConsult && station.chart) {
       const c = station.chart;
@@ -649,6 +678,7 @@
         ctx.finish(score, max);
         return;
       }
+      if (i > 0) ctx.checkpoint({ i, score, stability });
       const node = nodes[i];
       const card = el(`<section class="card node">
         <div class="eyebrow">${isConsult ? 'Decision point' : 'Page'} ${i + 1} of ${nodes.length}${node.xp ? ` · ${node.xp} XP` : ''}</div>
@@ -721,7 +751,7 @@
       });
       narrowTool(ctx, answers, pairs);
     };
-    step(0);
+    step(ctx.resumed?.i || 0);
   }
 
   function narrowTool(ctx, answers, pairs) {
@@ -857,11 +887,12 @@
     const per = station.xpPer || 10;
     const qs = station.questions;
     const max = qs.length * per;
-    let score = 0;
+    let score = ctx.resumed?.score || 0;
     stage.appendChild(el(`<div class="card boss-intro">${station.intro}</div>`));
 
     const step = (i) => {
       if (i >= qs.length) return ctx.finish(score, max);
+      if (i > 0) ctx.checkpoint({ i, score });
       const q = qs[i];
       const card = el(`<section class="card node">
         <div class="eyebrow">Question ${i + 1} of ${qs.length} · ${per} XP</div>
@@ -891,7 +922,7 @@
         fb.appendChild(row);
       };
     };
-    step(0);
+    step(ctx.resumed?.i || 0);
   }
 
   // ---------- station: rapid-fire synthesis ----------
@@ -913,14 +944,15 @@
     const { station, stage, dayId } = ctx;
     const items = station.items;
     const max = items.reduce((sum, it) => sum + RF_KINDS[it.kind].xp, 0);
-    const tally = { recall: [0, 0], mcq: [0, 0], why: [0, 0] };
-    let score = 0;
+    const tally = ctx.resumed?.tally || { recall: [0, 0], mcq: [0, 0], why: [0, 0] };
+    let score = ctx.resumed?.score || 0;
 
     stage.appendChild(el(`<div class="card rf-intro">${station.intro}
       <div class="rf-legend">${Object.values(RF_KINDS).map((k) => `<span class="rf-kind">${k.label}</span>`).join('')}</div></div>`));
 
     const step = (i) => {
       if (i >= items.length) return wrapUp();
+      if (i > 0) ctx.checkpoint({ i, score, tally });
       const it = items[i];
       const kind = RF_KINDS[it.kind];
       tally[it.kind][1] += kind.xp;
@@ -1056,7 +1088,7 @@
       summary.querySelector('[data-act="again"]').onclick = () => go(location.hash);
       completeDayButton(ctx, summary.querySelector('.finish-day'));
     };
-    step(0);
+    step(ctx.resumed?.i || 0);
   }
 
   function completeDayButton(ctx, fin) {
@@ -1094,6 +1126,8 @@
   }
   function route() {
     const parts = location.hash.replace(/^#\/?/, '').split('/').filter(Boolean);
+    if (updateReady) return location.reload();
+    leaveStation();
     window.scrollTo(0, 0);
     renderHeader();
     document.body.classList.remove('in-world');
@@ -1115,6 +1149,7 @@
     let reloading = false;
     navigator.serviceWorker.addEventListener('controllerchange', () => {
       if (!hadController || reloading) return;
+      if (inStation) { updateReady = true; return; }
       reloading = true;
       location.reload();
     });

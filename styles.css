@@ -310,6 +310,8 @@ body.in-world main { padding: 0; max-width: none; }
 
 /* ---------- RPG: stations ---------- */
 .buff { margin-top: 8px; background: #2a2310; color: #fde68a; border: 1px solid #78350f; padding: 6px 12px; border-radius: 10px; font-size: .85rem; }
+.buff.resume { background: var(--panel-2); color: inherit; border-color: var(--line); }
+.linkish { background: none; border: 0; padding: 0; margin-left: 6px; color: var(--accent); font: inherit; text-decoration: underline; cursor: pointer; }
 .narrow { margin-top: 8px; width: 100%; border-style: dashed; color: var(--accent); }
 .opt.narrowed { opacity: .25; text-decoration: line-through; }
 .loot { margin: 12px auto 4px; max-width: 360px; text-align: left; background: var(--panel-2); border: 1px solid var(--line); border-radius: 12px; padding: 10px 14px; display: grid; gap: 4px; }
