@@ -304,6 +304,8 @@ body.in-world main { padding: 0; max-width: none; }
 .floors { display: grid; gap: 4px; margin-bottom: 8px; max-height: 240px; overflow: auto; }
 .floor { display: grid; grid-template-columns: 28px 1fr auto; gap: 8px; align-items: center; padding: 7px 10px; border-radius: 10px; background: var(--panel-2); font-size: .88rem; }
 .floor.here { border: 1px solid var(--accent); }
+button.floor { width: 100%; border: 1px solid var(--line); color: inherit; font: inherit; text-align: left; cursor: pointer; }
+button.floor:hover { border-color: var(--accent); }
 .floor.off { opacity: .5; }
 .floor small { color: var(--muted); }
 .enter { margin-bottom: 6px; }

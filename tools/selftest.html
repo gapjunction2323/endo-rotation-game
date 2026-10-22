@@ -85,8 +85,8 @@ document.getElementById('f').addEventListener('load', async function run() {
     log.push('save pill after 0.5s: "' + doc().getElementById('savePill').textContent + '"');
     log.push('home save note: ' + doc().querySelector('[data-save-note]').textContent);
 
-    for (const st of day.stations) {
-      W.location.hash = `#/day/1/s/${st.id}`;
+    const playDay = async (n) => { for (const st of W.ENDO_CONTENT[n].stations) {
+      W.location.hash = `#/day/${n}/s/${st.id}`;
       await sleep(80);
       if (st.type === 'consult' || st.type === 'pager') {
         for (let i = 0; i < st.nodes.length; i++) {
@@ -152,9 +152,10 @@ document.getElementById('f').addEventListener('load', async function run() {
       }
       await sleep(60);
       closeModal();
-      const s = JSON.parse(W.localStorage.getItem('endoRotation.v1')).days[1].stations[st.id];
-      log.push(`${st.id}: ${s ? `${s.score}/${s.max}` : 'NOT SAVED'} | total XP ${xp()}`);
-    }
+      const s = JSON.parse(W.localStorage.getItem('endoRotation.v1')).days[n].stations[st.id];
+      log.push(`day ${n} ${st.id}: ${s ? `${s.score}/${s.max}` : 'NOT SAVED'} | total XP ${xp()}`);
+    } };
+    await playDay(1);
     const final = JSON.parse(W.localStorage.getItem('endoRotation.v1'));
     log.push('day completed: ' + final.days[1].completed + ' | bonusDay: ' + final.bonusDay);
     await sleep(400);
@@ -197,12 +198,14 @@ document.getElementById('f').addEventListener('load', async function run() {
     check('world renders after returning', !!doc().getElementById('wc'));
 
     const api = W.EndoRotation;
-    const snap = (s) => JSON.stringify({ xp: s.xp, days: s.days, bonusDay: s.bonusDay, profile: s.profile });
-    const before = snap(final);
+    const usedDays = (days) => Object.fromEntries(Object.entries(days).filter(([, d]) => d.completed || Object.keys(d.stations).length));
+    const snap = (s) => JSON.stringify({ xp: s.xp, days: usedDays(s.days), bonusDay: s.bonusDay, profile: s.profile });
+    const before = snap(saved());
     const code = api.exportCode();
     const json = api.exportJSON();
     log.push(`export: JSON ${json.length} chars, code ${code.length} chars`);
     check('parseSave(JSON) matches', snap(api.parseSave(json)) === before);
+    if (snap(api.parseSave(json)) !== before) log.push(`  saved:  ${before}\n  parsed: ${snap(api.parseSave(json))}`);
     let rejected = 0;
     ['garbage', '{"xp":"lots","days":{}}', '[]', JSON.stringify({ xp: 5, days: { 1: { stations: { a: { score: '<img>' } } } } })].forEach((t) => { try { api.parseSave(t); } catch (e) { rejected++; } });
     check(`invalid saves rejected (${rejected}/4)`, rejected === 4);
@@ -260,6 +263,28 @@ document.getElementById('f').addEventListener('load', async function run() {
     doc().getElementById('unlockAll').click();
     await sleep(500);
     check(`storage recovers -> pill "${doc().getElementById('savePill').textContent}"`, !doc().getElementById('savePill').textContent.includes('Not saved'));
+
+    W.location.hash = '#/';
+    await sleep(100);
+    const floorLabel = doc().querySelector('.hud-floor').textContent;
+    check(`world opens on the next unlocked floor ("${floorLabel}")`, floorLabel.startsWith('Floor 2'));
+    W.EndoWorldDebug.interact('maya');
+    await sleep(20);
+    for (let k = 0; k < 3; k++) { const b = findBtn('#dialog .btn', 'Next'); if (b) b.click(); }
+    check(`Day 2 patient takes the bed (${doc().querySelector('#dialog .dlg-head b').textContent})`, doc().querySelector('#dialog .dlg-head b').textContent.includes('Reyes') && doc().querySelector('#dialog .dlg-info').textContent.includes('Thirsty Truck Driver'));
+    doc().querySelector('#dialog .dlg-x').click();
+    W.EndoWorldDebug.interact('elevator');
+    await sleep(20);
+    const floorBtn = doc().querySelector('#dialog [data-floor="1"]');
+    check('elevator offers Floor 1', !!floorBtn && !doc().querySelector('#dialog [data-floor="3"]'));
+    floorBtn.click();
+    await sleep(60);
+    check(`elevator switches floors ("${doc().querySelector('.hud-floor').textContent}", saved floor ${saved().rpg.floor})`, doc().querySelector('.hud-floor').textContent.startsWith('Floor 1') && saved().rpg.floor === 1);
+    await playDay(2);
+    while (!doc().getElementById('modal').classList.contains('hidden')) { closeModal(); await sleep(30); }
+    const d2 = saved().days[2];
+    const d2max = W.ENDO_CONTENT[2].stations.length;
+    check(`Day 2 complete (${Object.values(d2.stations).filter((s) => s.done).length}/${d2max} stations, floor reset to ${saved().rpg.floor})`, d2.completed && Object.values(d2.stations).filter((s) => s.done).length === d2max && saved().rpg.floor === null);
 
     log.push('errors: ' + (errors.length ? errors.join(' ; ') : 'none'));
   } catch (e) {

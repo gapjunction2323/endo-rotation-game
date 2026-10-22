@@ -23,6 +23,7 @@ window.EndoRPG = {
         buffs: pick(r && r.buffs, ['coffee', 'snack']),
         cleared: {},
         pos: null,
+        floor: r && isNum(r.floor) ? r.floor : null,
         seenIntro: !!(r && r.seenIntro)
       };
       if (!out.items.coat_short) out.items.coat_short = 1;
@@ -341,14 +342,37 @@ window.EndoRPG = {
     const isFloor = (x, y) => x >= 0 && y >= 0 && x < W.w && y < W.h && floorGrid[y * W.w + x] >= 0;
     const blocked = (x, y) => { const tx = Math.floor(x); const ty = Math.floor(y); return tx < 0 || ty < 0 || tx >= W.w || ty >= W.h || solid[ty * W.w + tx] === 1; };
 
+    // Each rotation day is a floor. Day 1 uses the base cast; later days recast the station NPCs from their content's `cast`.
+    const dayRec = (id) => S().days[id] || { stations: {}, completed: false };
+    const finished = (id) => dayRec(id).completed || G.CONTENT[id].stations.every((s) => dayRec(id).stations[s.id]?.done);
+    const nextDay = () => G.DAYS.find((d) => G.isUnlocked(d.id) && !finished(d.id));
+    function floorDay() {
+      const f = S().rpg.floor;
+      if (f && G.isUnlocked(f)) return f;
+      return nextDay()?.id || 1;
+    }
+    function floorNpcs(day) {
+      if (day === 1) return W.npcs;
+      const cast = G.CONTENT[day].cast || {};
+      return W.npcs.flatMap((n) => {
+        if (n.act.type !== 'station') return [n];
+        const c = cast[n.id];
+        return c ? [{ ...n, ...c, act: { type: 'station', day, station: c.station } }] : [];
+      });
+    }
+
     const NET_ROUTES = { account: '#/online', guild: '#/guild', raid: '#/guild', duel: '#/duels', market: '#/market', hiscores: '#/hiscores' };
     function npcStatus(n) {
       const a = n.act;
+      if (a.type === 'elevator') {
+        const next = nextDay();
+        return next && next.id !== floorDay() ? 'new' : null;
+      }
       if (a.type === 'station') {
         if (!G.isUnlocked(a.day)) return 'lock';
         const station = G.CONTENT[a.day].stations.find((s) => s.id === a.station);
         if (station.type === 'pearls' && !G.coreDone(a.day)) return 'lock';
-        return G.dayState(a.day).stations[a.station]?.done ? 'done' : 'new';
+        return dayRec(a.day).stations[a.station]?.done ? 'done' : 'new';
       }
       if (a.type === 'tutorial') return S().rpg.seenIntro ? null : 'new';
       if (NET_ROUTES[a.type]) return G.net() ? G.net().status(a.type) : 'soon';
@@ -364,12 +388,14 @@ window.EndoRPG = {
       const r = st.rpg;
       const info = levelInfo(st.xp);
       const pts = skillPoints();
+      const day = floorDay();
+      const NPCS = floorNpcs(day);
       document.body.classList.add('in-world');
       G.app.innerHTML = `<div class="world" id="world">
         <canvas id="wc" aria-label="Hospital map. Use arrow keys or tap to move."></canvas>
         <div class="hud">
           <div class="hud-pill"><b>Lv ${info.level}</b><span class="hud-bar"><i style="width:${info.pct}%"></i></span><span>🪙 ${r.coins}</span></div>
-          <div class="hud-floor">${W.floor}</div>
+          <div class="hud-floor">Floor ${day} · ${esc(G.DAYS[day - 1].title)}</div>
           <div class="hud-btns">
             <a class="hud-btn" href="#/character" aria-label="Character, skills and gear">🎒${pts > 0 ? `<i class="dot">${pts}</i>` : ''}</a>
             <a class="hud-btn" href="#/days" aria-label="Rotation list">📋</a>
@@ -546,7 +572,7 @@ window.EndoRPG = {
         W.decor.forEach(drawDecor);
 
         const others = G.net() ? G.net().others() : [];
-        const ents = W.npcs.map((n) => ({ n, y: n.y }))
+        const ents = NPCS.map((n) => ({ n, y: n.y }))
           .concat(others.map((o) => ({ o, y: o.y })), [{ me: true, y: player.y }])
           .sort((a, b) => a.y - b.y);
         ents.forEach((e) => {
@@ -584,7 +610,7 @@ window.EndoRPG = {
 
       const R = 0.28;
       const hits = (x, y) => blocked(x - R, y - R) || blocked(x + R, y - R) || blocked(x - R, y + R) || blocked(x + R, y + R)
-        || W.npcs.some((n) => (n.x - x) ** 2 + (n.y - y) ** 2 < 0.36);
+        || NPCS.some((n) => (n.x - x) ** 2 + (n.y - y) ** 2 < 0.36);
       function move(dx, dy) {
         if (!hits(player.x + dx, player.y)) player.x += dx;
         if (!hits(player.x, player.y + dy)) player.y += dy;
@@ -631,7 +657,7 @@ window.EndoRPG = {
 
         let best = null;
         let bd = TALK;
-        W.npcs.forEach((n) => { const d = Math.hypot(n.x - player.x, n.y - player.y); if (d < bd) { bd = d; best = n; } });
+        NPCS.forEach((n) => { const d = Math.hypot(n.x - player.x, n.y - player.y); if (d < bd) { bd = d; best = n; } });
         if (best !== near) {
           near = best;
           talkBtn.classList.toggle('hidden', !near);
@@ -678,6 +704,15 @@ window.EndoRPG = {
           box.appendChild(btn);
         });
         dialog.querySelector('.dlg-x').onclick = closeDialog;
+        dialog.querySelectorAll('[data-floor]').forEach((b) => {
+          b.onclick = () => {
+            const id = +b.dataset.floor;
+            S().rpg.floor = id;
+            persist();
+            G.toast(`🛗 Floor ${id}: ${esc(G.DAYS[id - 1].title)}`, 'good');
+            viewWorld();
+          };
+        });
         dialog.classList.remove('hidden');
         box.querySelector('.btn')?.focus();
       }
@@ -687,16 +722,18 @@ window.EndoRPG = {
         if (a.type === 'station') {
           const status = npcStatus(n);
           const station = G.CONTENT[a.day].stations.find((s) => s.id === a.station);
-          const rec = G.dayState(a.day).stations[a.station];
-          if (status === 'lock') return `<div class="dlg-info">🔒 ${station.type === 'pearls' ? 'Clear every other Day 1 case first.' : 'This day is not unlocked yet.'}</div>`;
+          const rec = dayRec(a.day).stations[a.station];
+          if (status === 'lock') return `<div class="dlg-info">🔒 ${station.type === 'pearls' ? `Clear every other Day ${a.day} case first.` : 'This day is not unlocked yet.'}</div>`;
           return `<div class="dlg-info">${station.icon} <b>${esc(station.title)}</b>${rec?.done ? ` · best ${rec.score}/${rec.max} XP · replays are practice` : ''}</div>`;
         }
         if (NET_ROUTES[a.type]) return G.net() ? G.net().info(a.type) : '';
         if (a.type === 'elevator') {
           return `<div class="floors">${G.DAYS.map((d) => {
             const open = G.isUnlocked(d.id);
-            const status = d.id === 1 ? 'You are here' : !G.hasContent(d.id) ? 'Under construction' : open ? 'Open' : 'Locked';
-            return `<div class="floor ${d.id === 1 ? 'here' : ''} ${open ? '' : 'off'}"><b>${d.id}</b><span>${d.badge.icon} ${esc(d.title)}</span><small>${status}</small></div>`;
+            const here = d.id === day;
+            const status = here ? 'You are here' : !G.hasContent(d.id) ? 'Under construction' : !open ? `Complete Day ${d.id - 1} first` : dayRec(d.id).completed ? 'Complete ✓' : 'Open ▸';
+            const tag = open && !here ? 'button' : 'div';
+            return `<${tag} class="floor ${here ? 'here' : ''} ${open ? '' : 'off'}" ${tag === 'button' ? `data-floor="${d.id}"` : ''}><b>${d.id}</b><span>${d.badge.icon} ${esc(d.title)}</span><small>${status}</small></${tag}>`;
           }).join('')}</div>`;
         }
         return '';
@@ -774,7 +811,7 @@ window.EndoRPG = {
           const camY = wh < vh ? (wh - vh) / 2 : Math.max(0, Math.min(wh - vh, player.y * T - vh / 2));
           const wx = (e.clientX - rect.left + camX) / T;
           const wy = (e.clientY - rect.top + camY) / T;
-          const hit = W.npcs.find((n) => Math.hypot(n.x - wx, n.y - wy) < 0.6);
+          const hit = NPCS.find((n) => Math.hypot(n.x - wx, n.y - wy) < 0.6);
           if (hit) interact(hit);
           else if (!blocked(wx, wy)) target = { x: wx, y: wy };
         }
@@ -808,10 +845,10 @@ window.EndoRPG = {
       if (G.net()) G.net().hud();
       raf = requestAnimationFrame(frame);
       if (!r.seenIntro) {
-        const jordan = W.npcs.find((n) => n.act.type === 'tutorial');
+        const jordan = NPCS.find((n) => n.act.type === 'tutorial');
         setTimeout(() => { if (canvas.isConnected) openDialog(jordan); }, 400);
       }
-      Object.assign(debug, { player, interact: (id) => openDialog(W.npcs.find((n) => n.id === id)) });
+      Object.assign(debug, { player, interact: (id) => openDialog(NPCS.find((n) => n.id === id)) });
     }
 
     return {

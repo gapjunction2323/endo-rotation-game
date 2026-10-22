@@ -330,7 +330,9 @@
   function isUnlocked(id) {
     if (!hasContent(id)) return false;
     if (id === 1 || state.unlockAll) return true;
-    return !!(state.days[id - 1] && state.days[id - 1].completed);
+    const prev = state.days[id - 1];
+    if (!prev) return false;
+    return prev.completed || (hasContent(id - 1) && CONTENT[id - 1].stations.every((s) => prev.stations[s.id]?.done));
   }
   const coreStations = (id) => CONTENT[id].stations.filter((s) => s.type !== 'pearls');
   const coreDone = (id) => coreStations(id).every((s) => dayState(id).stations[s.id]?.done);
@@ -1102,6 +1104,7 @@
     const btn = el(`<button class="btn primary big">Complete Day ${dayId} ${meta.badge.icon}</button>`);
     btn.onclick = () => {
       ds.completed = true;
+      state.rpg.floor = null;
       const core = CONTENT[dayId].stations.map((s) => ds.stations[s.id]);
       const got = core.reduce((a, s) => a + (s?.score || 0), 0);
       const max = core.reduce((a, s) => a + (s?.max || 0), 0);
@@ -1113,7 +1116,7 @@
       showModal(`<div class="big-emoji">${meta.badge.icon}</div><h2>Badge earned: ${esc(meta.badge.name)}</h2>
         <p>Day ${dayId} score: <b>${got} / ${max} XP</b> (${Math.round(pct * 100)}%).</p>
         ${streak ? '<p>🔥 Streak! You get <b>×1.1 XP</b> tomorrow.</p>' : '<p>Score 80% or more to earn a streak multiplier.</p>'}
-        ${nextReady ? '' : `<p class="muted">The Day ${dayId + 1} content pack isn't built yet.</p>`}`,
+        ${nextReady ? `<p>🛗 Floor ${dayId + 1} is open. Your next patients are waiting there.</p>` : `<p class="muted">The Day ${dayId + 1} content pack isn't built yet.</p>`}`,
         [{ label: 'Back to rotation', cls: 'btn primary', onClick: () => go('#/') }]);
     };
     fin.appendChild(btn);
