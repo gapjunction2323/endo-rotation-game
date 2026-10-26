@@ -311,6 +311,75 @@ window.ENDO_RPG = {
         { id: 'elevator', emoji: '🛗', name: 'Elevator', obj: true, x: 20, y: 21.4, act: { type: 'elevator' },
           lines: ['Each floor holds one day of the rotation. The ED, ICU, pharmacy, and guild hall are on Floor 1.'] }
       ]
+    },
+    5: {
+      w: 40, h: 30,
+      spawn: { x: 20, y: 27.2 },
+      arrive: { x: 20, y: 27.2 },
+      name: 'Bone & Mineral Center',
+      theme: { void: '#16171c', wall: '#4a4f5a', wallTop: '#676e7c', label: 'rgba(52,58,70,.6)' },
+      // A plus sign: four corridors meet at a central rotunda, with a room in each corner.
+      rooms: [
+        { id: 'hallN', name: '', x: 18, y: 1, w: 4, h: 11, color: '#e6e7ea' },
+        { id: 'hallS', name: '', x: 18, y: 18, w: 4, h: 11, color: '#e6e7ea' },
+        { id: 'hallW', name: '', x: 1, y: 13, w: 15, h: 4, color: '#e6e7ea' },
+        { id: 'hallE', name: '', x: 24, y: 13, w: 15, h: 4, color: '#e6e7ea' },
+        { id: 'rotunda', name: 'Rotunda', x: 16, y: 12, w: 8, h: 6, color: '#f1ead9' },
+        { id: 'dxa', name: 'DXA Suite', x: 1, y: 1, w: 8, h: 11, color: '#dbe3f0' },
+        { id: 'fls', name: 'Fracture Liaison', x: 10, y: 1, w: 6, h: 11, color: '#f3e1d6' },
+        { id: 'ortho', name: 'Ortho Ward 6E', x: 24, y: 1, w: 8, h: 11, color: '#dde9e1' },
+        { id: 'shortstay', name: 'Surgical Short-Stay', x: 33, y: 1, w: 6, h: 11, color: '#e9e1f1' },
+        { id: 'lab', name: 'Bone Lab', x: 1, y: 18, w: 7, h: 11, color: '#e3eedf' },
+        { id: 'msk', name: 'MSK Radiology', x: 9, y: 18, w: 7, h: 11, color: '#d8dce6' },
+        { id: 'gym', name: 'PT Gym', x: 24, y: 18, w: 8, h: 11, color: '#f4ecd2' },
+        { id: 'lounge', name: 'Staff Lounge', x: 33, y: 18, w: 6, h: 11, color: '#ece0ea' }
+      ],
+      doors: [
+        { x: 4, y: 12, w: 2, h: 1 }, { x: 16, y: 5, w: 2, h: 1 }, { x: 22, y: 5, w: 2, h: 1 }, { x: 35, y: 12, w: 2, h: 1 },
+        { x: 4, y: 17, w: 2, h: 1 }, { x: 16, y: 23, w: 2, h: 1 }, { x: 22, y: 23, w: 2, h: 1 }, { x: 35, y: 17, w: 2, h: 1 }
+      ],
+      decor: [
+        // DXA suite
+        { t: 'dxa', x: 2, y: 2, w: 4, h: 1 }, { t: 'desk', x: 2, y: 8, w: 3, h: 1 }, { t: 'monitor', x: 6, y: 8, w: 1, h: 1 },
+        // fracture liaison clinic
+        { t: 'desk', x: 11, y: 2, w: 3, h: 1 }, { t: 'chairs', x: 11, y: 7, w: 3, h: 1 }, { t: 'plant', x: 15, y: 1, w: 1, h: 1 },
+        // ortho ward
+        { t: 'bed', x: 25, y: 1, w: 1, h: 2 }, { t: 'monitor', x: 26, y: 1, w: 1, h: 1 },
+        { t: 'bed', x: 29, y: 1, w: 1, h: 2 }, { t: 'monitor', x: 30, y: 1, w: 1, h: 1 }, { t: 'counter', x: 28, y: 9, w: 3, h: 1 },
+        // surgical short-stay
+        { t: 'bed', x: 34, y: 1, w: 1, h: 2 }, { t: 'monitor', x: 35, y: 1, w: 1, h: 1 }, { t: 'sink', x: 38, y: 7, w: 1, h: 1 },
+        // rotunda centerpiece
+        { t: 'skeleton', x: 19, y: 14, w: 2, h: 2 }, { t: 'plant', x: 16, y: 12, w: 1, h: 1 }, { t: 'plant', x: 23, y: 12, w: 1, h: 1 }, { t: 'plant', x: 23, y: 17, w: 1, h: 1 },
+        // bone lab
+        { t: 'bench', x: 2, y: 19, w: 3, h: 1 }, { t: 'bench', x: 2, y: 23, w: 3, h: 1 }, { t: 'fridge', x: 6, y: 19, w: 2, h: 1 },
+        // MSK radiology
+        { t: 'whiteboard', x: 10, y: 18, w: 5, h: 1 }, { t: 'table', x: 10, y: 21, w: 4, h: 1 }, { t: 'monitor', x: 15, y: 25, w: 1, h: 1 },
+        // PT gym
+        { t: 'treadmill', x: 25, y: 18, w: 2, h: 1 }, { t: 'treadmill', x: 28, y: 18, w: 2, h: 1 },
+        { t: 'bars', x: 26, y: 22, w: 4, h: 1 }, { t: 'mat', x: 26, y: 25, w: 4, h: 3, solid: false },
+        // staff lounge
+        { t: 'sofa', x: 33, y: 18, w: 3, h: 1 }, { t: 'counter', x: 37, y: 18, w: 2, h: 1 }, { t: 'table', x: 34, y: 22, w: 2, h: 1 },
+        { t: 'desk', x: 35, y: 27, w: 3, h: 1 }
+      ],
+      npcs: [
+        { id: 'maya', emoji: '🛏️', name: 'Ortho patient', color: '#f87171', x: 27, y: 4.4, act: { type: 'station' } },
+        { id: 'alvarez', emoji: '🧑', name: 'Short-stay patient', color: '#fbbf24', x: 36, y: 4.4, act: { type: 'station' } },
+        { id: 'sam', emoji: '🧑🏾‍💼', name: 'Pharmacy Resident Sam', color: '#a3e635', x: 12.5, y: 4.6, act: { type: 'station' } },
+        { id: 'ortiz', emoji: '🧑🏽‍💻', name: 'DXA Technologist', color: '#60a5fa', x: 4.5, y: 5.4, act: { type: 'station' } },
+        { id: 'noor', emoji: '👩🏾‍⚕️', name: 'MSK Radiologist', color: '#f59e0b', x: 12, y: 23.6, act: { type: 'station' } },
+        { id: 'okafor', emoji: '👨🏽‍🏫', name: 'Dr. Okafor, Attending', color: '#f472b6', x: 17.5, y: 14.6, act: { type: 'station' } },
+        { id: 'carrel', emoji: '📚', name: 'Study Carrel', obj: true, x: 36.5, y: 26.3, act: { type: 'station' } },
+        { id: 'pt', emoji: '🧑🏻‍🦯', name: 'PT Coach Lena', color: '#34d399', x: 29, y: 20.6, act: { type: 'talk' },
+          lines: ['Most hip fractures start with a fall. Sedatives, poor vision, cognitive impairment, weak legs, and clutter at home are the big risk factors.',
+            'So we stop what we can, fix the vision, add a walker when it helps, and make the house fall-proof: lights, handrails, nonslip bathroom floors, and no loose rugs.'] },
+        { id: 'labtech', emoji: '🧑🏼‍🔬', name: 'Bone Lab Tech Arjun', color: '#c084fc', x: 4.5, y: 26, act: { type: 'talk' },
+          lines: ['25-OH vitamin D is the test for vitamin D stores. 1,25-dihydroxy D stays normal until very late because PTH keeps the kidney making it.',
+            'And when alkaline phosphatase is high, check liver tests too. If the GGT is normal, the alk phos is probably coming from bone.'] },
+        { id: 'board', emoji: '📋', name: 'Rotation Board', obj: true, x: 18.6, y: 27.6, act: { type: 'days' },
+          lines: ['The full 14-day rotation schedule, briefings, and scores.'] },
+        { id: 'elevator', emoji: '🛗', name: 'Elevator', obj: true, x: 20, y: 28.4, act: { type: 'elevator' },
+          lines: ['Each floor holds one day of the rotation. The ED, ICU, pharmacy, and guild hall are on Floor 1.'] }
+      ]
     }
   },
 

@@ -332,6 +332,27 @@ document.getElementById('f').addEventListener('load', async function run() {
     const d4max = W.ENDO_CONTENT[4].stations.length;
     check(`Day 4 complete (${Object.values(d4.stations).filter((s) => s.done).length}/${d4max} stations)`, d4.completed && Object.values(d4.stations).filter((s) => s.done).length === d4max);
 
+    W.location.hash = '#/';
+    await sleep(150);
+    const f5Label = doc().querySelector('.hud-floor').textContent;
+    check(`world opens on Floor 5 after Day 4 ("${f5Label}")`, f5Label.startsWith('Floor 5') && f5Label.includes('Bone'));
+    const f5rooms = W.ENDO_RPG.floors[5].rooms.map((r) => r.name).filter(Boolean);
+    check(`Floor 5 has its own layout without an ED or ICU (${f5rooms.join(', ')})`, !f5rooms.some((n) => /emergency|icu/i.test(n)) && [f2rooms, f3rooms, f4rooms].every((r) => r.join() !== f5rooms.join()));
+    W.EndoWorldDebug.interact('maya');
+    await sleep(20);
+    for (let k = 0; k < 3; k++) { const b = findBtn('#dialog .btn', 'Next'); if (b) b.click(); }
+    check(`Day 5 patient on Ortho Ward 6E (${doc().querySelector('#dialog .dlg-head b').textContent})`, doc().querySelector('#dialog .dlg-head b').textContent.includes('Lindqvist') && doc().querySelector('#dialog .dlg-info').textContent.includes('Broke From Standing'));
+    doc().querySelector('#dialog .dlg-x').click();
+    W.EndoWorldDebug.interact('pt');
+    await sleep(20);
+    check('PT coach talks without a station', doc().querySelector('#dialog .dlg-head b').textContent.includes('Lena'));
+    doc().querySelector('#dialog .dlg-x').click();
+    await playDay(5);
+    while (!doc().getElementById('modal').classList.contains('hidden')) { closeModal(); await sleep(30); }
+    const d5 = saved().days[5];
+    const d5max = W.ENDO_CONTENT[5].stations.length;
+    check(`Day 5 complete (${Object.values(d5.stations).filter((s) => s.done).length}/${d5max} stations)`, d5.completed && Object.values(d5.stations).filter((s) => s.done).length === d5max);
+
     log.push('errors: ' + (errors.length ? errors.join(' ; ') : 'none'));
   } catch (e) {
     log.push('EXCEPTION: ' + e.message + '\n' + e.stack);

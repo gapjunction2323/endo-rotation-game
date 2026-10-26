@@ -584,6 +584,33 @@ window.EndoRPG = {
             c2d.fillStyle = '#475569'; c2d.beginPath(); c2d.arc(cx, cy, rad * 0.45, 0, Math.PI * 2); c2d.fill();
             break;
           }
+          case 'dxa':
+            c2d.fillStyle = '#e2e8f0'; rr(x, y + h * 0.25, w, h * 0.55, T * 0.12); c2d.fill();
+            c2d.strokeStyle = '#94a3b8'; c2d.lineWidth = 2; c2d.stroke();
+            c2d.fillStyle = '#475569'; rr(x + w * 0.55, y - h * 0.05, T * 0.35, h * 1.05, T * 0.06); c2d.fill();
+            c2d.fillStyle = '#38bdf8'; c2d.fillRect(x + w * 0.55 + T * 0.08, y + h * 0.1, T * 0.19, h * 0.12);
+            break;
+          case 'skeleton': {
+            const cx = x + w / 2;
+            c2d.fillStyle = '#334155'; rr(x + p, y + p / 2, w - 2 * p, h - p * 2, T * 0.14); c2d.fill();
+            c2d.fillStyle = '#a8a29e'; rr(x + p, y + h - p * 3, w - 2 * p, p * 2.5, T * 0.06); c2d.fill();
+            c2d.strokeStyle = '#f5f0e6'; c2d.lineWidth = Math.max(2, T * 0.07); c2d.lineCap = 'round';
+            c2d.beginPath(); c2d.arc(cx, y + h * 0.18, T * 0.17, 0, Math.PI * 2); c2d.stroke();
+            c2d.beginPath(); c2d.moveTo(cx, y + h * 0.28); c2d.lineTo(cx, y + h * 0.62);
+            for (let i = 0; i < 3; i++) { const ry = y + h * (0.34 + i * 0.08); c2d.moveTo(cx - w * 0.16, ry); c2d.lineTo(cx + w * 0.16, ry); }
+            c2d.moveTo(cx - w * 0.22, y + h * 0.3); c2d.lineTo(cx - w * 0.3, y + h * 0.55);
+            c2d.moveTo(cx + w * 0.22, y + h * 0.3); c2d.lineTo(cx + w * 0.3, y + h * 0.55);
+            c2d.moveTo(cx, y + h * 0.62); c2d.lineTo(cx - w * 0.14, y + h * 0.84);
+            c2d.moveTo(cx, y + h * 0.62); c2d.lineTo(cx + w * 0.14, y + h * 0.84);
+            c2d.stroke(); c2d.lineCap = 'butt';
+            break;
+          }
+          case 'bars':
+            c2d.fillStyle = '#94a3b8';
+            c2d.fillRect(x, y + h * 0.15, w, h * 0.12); c2d.fillRect(x, y + h * 0.73, w, h * 0.12);
+            c2d.fillStyle = '#475569';
+            [0.05, 0.5, 0.95].forEach((f) => { c2d.fillRect(x + w * f - 3, y + h * 0.1, 6, h * 0.8); });
+            break;
           case 'mat':
             c2d.fillStyle = 'rgba(239,68,68,.18)'; rr(x, y, w, h, T * 0.3); c2d.fill();
             c2d.strokeStyle = 'rgba(239,68,68,.45)'; c2d.lineWidth = 3; c2d.beginPath(); c2d.arc(x + w / 2, y + h / 2, Math.min(w, h) * 0.3, 0, Math.PI * 2); c2d.stroke();
