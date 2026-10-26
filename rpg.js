@@ -564,6 +564,26 @@ window.EndoRPG = {
             c2d.fillStyle = '#7dd3fc'; c2d.beginPath(); c2d.arc(x + w / 2, y + h / 2, Math.min(w, h) * 0.38, 0, Math.PI * 2); c2d.fill();
             c2d.fillStyle = '#e0f2fe'; c2d.beginPath(); c2d.arc(x + w / 2, y + h / 2, Math.min(w, h) * 0.1, 0, Math.PI * 2); c2d.fill();
             break;
+          case 'recliner':
+            c2d.fillStyle = '#7c8db5'; rr(x + p, y + p * 2, w - 2 * p, h - p * 3, T * 0.16); c2d.fill();
+            c2d.fillStyle = '#9fb0d6'; rr(x + p * 2, y + h * 0.45, w - p * 4, h * 0.35, T * 0.1); c2d.fill();
+            c2d.strokeStyle = '#94a3b8'; c2d.lineWidth = 2; c2d.beginPath(); c2d.moveTo(x + w - p, y + h - p); c2d.lineTo(x + w - p, y + p / 2); c2d.stroke();
+            c2d.fillStyle = '#bae6fd'; rr(x + w - p * 2.2, y + p / 2, p * 2.4, p * 2.6, T * 0.04); c2d.fill();
+            break;
+          case 'dialysis':
+            c2d.fillStyle = '#e2e8f0'; rr(x + p * 1.5, y + p, w - p * 3, h - p * 2, T * 0.08); c2d.fill();
+            c2d.fillStyle = '#0f172a'; rr(x + p * 2.5, y + p * 2, w - p * 5, h * 0.28, T * 0.04); c2d.fill();
+            c2d.fillStyle = '#ef4444'; c2d.beginPath(); c2d.arc(x + w * 0.35, y + h * 0.65, T * 0.08, 0, Math.PI * 2); c2d.fill();
+            c2d.fillStyle = '#3b82f6'; c2d.beginPath(); c2d.arc(x + w * 0.65, y + h * 0.65, T * 0.08, 0, Math.PI * 2); c2d.fill();
+            break;
+          case 'scanner': {
+            const cx = x + w * 0.38; const cy = y + h / 2; const rad = Math.min(w, h) * 0.42;
+            c2d.fillStyle = '#cbd5e1'; rr(x + w * 0.3, cy - h * 0.14, w * 0.68, h * 0.28, T * 0.08); c2d.fill();
+            c2d.fillStyle = '#e2e8f0'; c2d.beginPath(); c2d.arc(cx, cy, rad, 0, Math.PI * 2); c2d.fill();
+            c2d.strokeStyle = '#64748b'; c2d.lineWidth = 3; c2d.stroke();
+            c2d.fillStyle = '#475569'; c2d.beginPath(); c2d.arc(cx, cy, rad * 0.45, 0, Math.PI * 2); c2d.fill();
+            break;
+          }
           case 'mat':
             c2d.fillStyle = 'rgba(239,68,68,.18)'; rr(x, y, w, h, T * 0.3); c2d.fill();
             c2d.strokeStyle = 'rgba(239,68,68,.45)'; c2d.lineWidth = 3; c2d.beginPath(); c2d.arc(x + w / 2, y + h / 2, Math.min(w, h) * 0.3, 0, Math.PI * 2); c2d.stroke();

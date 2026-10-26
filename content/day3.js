@@ -342,7 +342,7 @@ window.ENDO_CONTENT[3] = {
         },
         {
           info: '📟 <b>ICU:</b> TSH 6.4 mU/L with a normal free T4, drawn at 2 AM in a patient who has been awake all night with alarms and vitals checks.',
-          prompt: 'What do you advise?',
+          prompt: 'What do you advise about this TSH?',
           xp: 5,
           options: [
             { t: "Don't treat it. Acute sleep loss removes sleep's normal nighttime TSH suppression; recheck after normal sleep.", ok: true,

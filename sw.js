@@ -1,4 +1,4 @@
-const CACHE = 'endo-rotation-v13';
+const CACHE = 'endo-rotation-v14';
 const ASSETS = [
   './',
   './index.html',
@@ -11,6 +11,7 @@ const ASSETS = [
   './content/day1.js',
   './content/day2.js',
   './content/day3.js',
+  './content/day4.js',
   './content/rpg-data.js',
   './manifest.webmanifest',
   './icons/icon-192.png',

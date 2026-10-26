@@ -235,6 +235,82 @@ window.ENDO_RPG = {
         { id: 'elevator', emoji: '🛗', name: 'Elevator', obj: true, x: 18.5, y: 28.4, act: { type: 'elevator' },
           lines: ['Each floor holds one day of the rotation. The ED, ICU, pharmacy, and guild hall are on Floor 1.'] }
       ]
+    },
+    4: {
+      w: 40, h: 30,
+      spawn: { x: 20, y: 20.2 },
+      arrive: { x: 20, y: 20.2 },
+      name: 'Oncology, Stones & Surgery',
+      theme: { void: '#1a1410', wall: '#5a4636', wallTop: '#7a614c', label: 'rgba(70,48,30,.6)' },
+      // Two wings joined by a skybridge. The elevator lobby hangs off the middle of the bridge.
+      rooms: [
+        { id: 'hallW', name: '', x: 9, y: 1, w: 3, h: 28, color: '#ece5dc' },
+        { id: 'hallE', name: '', x: 28, y: 1, w: 3, h: 28, color: '#ece5dc' },
+        { id: 'bridge', name: 'Skybridge', x: 12, y: 13, w: 16, h: 3, color: '#d9e8f3' },
+        { id: 'infusion', name: 'Infusion Center', x: 1, y: 1, w: 7, h: 9, color: '#f3e3ef' },
+        { id: 'hemonc', name: 'Hem-Onc 5W', x: 1, y: 11, w: 7, h: 8, color: '#dfe6f2' },
+        { id: 'dialysis', name: 'Dialysis', x: 1, y: 20, w: 7, h: 9, color: '#dcefee' },
+        { id: 'nucmed', name: 'Nuclear Medicine', x: 13, y: 1, w: 7, h: 11, color: '#e9e6c9' },
+        { id: 'surg', name: 'Endocrine Surgery', x: 21, y: 1, w: 6, h: 11, color: '#d9efe0' },
+        { id: 'lobby', name: 'Elevator Lobby', x: 15, y: 17, w: 10, h: 5, color: '#e4e7ee' },
+        { id: 'tumor', name: 'Tumor Board', x: 15, y: 23, w: 10, h: 6, color: '#efe3d2' },
+        { id: 'stone', name: 'Stone Clinic', x: 32, y: 1, w: 7, h: 9, color: '#f6e7cf' },
+        { id: 'ct', name: 'CT Reading Room', x: 32, y: 11, w: 7, h: 8, color: '#d6dbe6' },
+        { id: 'lounge', name: 'Staff Lounge', x: 32, y: 20, w: 7, h: 9, color: '#ece0f0' }
+      ],
+      doors: [
+        { x: 8, y: 4, w: 1, h: 2 }, { x: 8, y: 14, w: 1, h: 2 }, { x: 8, y: 24, w: 1, h: 2 },
+        { x: 12, y: 5, w: 1, h: 2 }, { x: 27, y: 5, w: 1, h: 2 },
+        { x: 18, y: 16, w: 4, h: 1 }, { x: 16, y: 22, w: 2, h: 1 },
+        { x: 31, y: 4, w: 1, h: 2 }, { x: 31, y: 14, w: 1, h: 2 }, { x: 31, y: 24, w: 1, h: 2 }
+      ],
+      decor: [
+        // infusion center: recliners with IV poles
+        { t: 'recliner', x: 1, y: 1, w: 1, h: 1 }, { t: 'recliner', x: 3, y: 1, w: 1, h: 1 }, { t: 'recliner', x: 5, y: 1, w: 1, h: 1 },
+        { t: 'recliner', x: 7, y: 1, w: 1, h: 1 }, { t: 'counter', x: 3, y: 7, w: 3, h: 1 },
+        // hem-onc ward
+        { t: 'bed', x: 2, y: 11, w: 1, h: 2 }, { t: 'monitor', x: 3, y: 11, w: 1, h: 1 },
+        { t: 'bed', x: 5, y: 11, w: 1, h: 2 }, { t: 'monitor', x: 6, y: 11, w: 1, h: 1 }, { t: 'sink', x: 7, y: 16, w: 1, h: 1 },
+        // dialysis
+        { t: 'recliner', x: 2, y: 20, w: 1, h: 1 }, { t: 'dialysis', x: 3, y: 20, w: 1, h: 1 },
+        { t: 'recliner', x: 5, y: 20, w: 1, h: 1 }, { t: 'dialysis', x: 6, y: 20, w: 1, h: 1 }, { t: 'counter', x: 5, y: 25, w: 3, h: 1 },
+        // nuclear medicine: gamma camera and console
+        { t: 'scanner', x: 14, y: 3, w: 3, h: 2 }, { t: 'monitor', x: 18, y: 1, w: 1, h: 1 }, { t: 'desk', x: 17, y: 8, w: 3, h: 1 },
+        // endocrine surgery pre-op
+        { t: 'bed', x: 22, y: 1, w: 1, h: 2 }, { t: 'bed', x: 25, y: 1, w: 1, h: 2 }, { t: 'sink', x: 26, y: 9, w: 1, h: 1 }, { t: 'counter', x: 22, y: 8, w: 3, h: 1 },
+        // skybridge
+        { t: 'plant', x: 12, y: 13, w: 1, h: 1 }, { t: 'plant', x: 27, y: 15, w: 1, h: 1 },
+        // elevator lobby
+        { t: 'chairs', x: 15, y: 18, w: 2, h: 1 }, { t: 'chairs', x: 23, y: 18, w: 2, h: 1 }, { t: 'plant', x: 24, y: 21, w: 1, h: 1 },
+        // tumor board
+        { t: 'whiteboard', x: 17, y: 23, w: 6, h: 1 }, { t: 'table', x: 16, y: 25, w: 7, h: 1 },
+        // stone clinic
+        { t: 'exam', x: 33, y: 2, w: 2, h: 1 }, { t: 'sink', x: 38, y: 1, w: 1, h: 1 }, { t: 'desk', x: 36, y: 7, w: 3, h: 1 },
+        // CT reading room
+        { t: 'scanner', x: 34, y: 12, w: 3, h: 2 }, { t: 'desk', x: 36, y: 16, w: 3, h: 1 }, { t: 'monitor', x: 38, y: 11, w: 1, h: 1 },
+        // staff lounge
+        { t: 'sofa', x: 32, y: 20, w: 3, h: 1 }, { t: 'counter', x: 36, y: 20, w: 3, h: 1 }, { t: 'table', x: 33, y: 24, w: 2, h: 1 },
+        { t: 'desk', x: 36, y: 27, w: 3, h: 1 }
+      ],
+      npcs: [
+        { id: 'maya', emoji: '🛏️', name: 'Hem-Onc patient', color: '#f87171', x: 4, y: 14.4, act: { type: 'station' } },
+        { id: 'alvarez', emoji: '🧑', name: 'Stone Clinic patient', color: '#fbbf24', x: 34, y: 4.6, act: { type: 'station' } },
+        { id: 'sam', emoji: '🧑🏾‍💼', name: 'Pharmacy Resident Sam', color: '#a3e635', x: 4.5, y: 4.6, act: { type: 'station' } },
+        { id: 'noor', emoji: '👩🏾‍⚕️', name: 'Nephrology Fellow', color: '#f59e0b', x: 4, y: 23.4, act: { type: 'station' } },
+        { id: 'ortiz', emoji: '🧑🏽‍💻', name: 'Radiology Resident', color: '#60a5fa', x: 34.5, y: 16.4, act: { type: 'station' } },
+        { id: 'okafor', emoji: '👨🏽‍🏫', name: 'Dr. Okafor, Attending', color: '#f472b6', x: 23.5, y: 27.2, act: { type: 'station' } },
+        { id: 'carrel', emoji: '📚', name: 'Study Carrel', obj: true, x: 37.5, y: 26.3, act: { type: 'station' } },
+        { id: 'surgeon', emoji: '👩🏻‍⚕️', name: 'Dr. Haddad, Endocrine Surgery', color: '#34d399', x: 23.5, y: 5.5, act: { type: 'talk' },
+          lines: ['About 85% of patients with primary hyperparathyroidism have a single adenoma. About 10% have four-gland hyperplasia, and fewer than 1% have cancer.',
+            'In the OR we check PTH before and 10 minutes after removing the gland. A drop of 50% or more means we got it. And pick a surgeon who does at least 50 of these a year.'] },
+        { id: 'nuctech', emoji: '🧑🏼‍🔬', name: 'Tech Ren, Nuclear Medicine', color: '#c084fc', x: 15.5, y: 7.5, act: { type: 'talk' },
+          lines: ['Sestamibi lights up most single adenomas but often misses hyperplasia. Ultrasound or 4D-CT adds to it.',
+            'Remember: these scans find the gland for the surgeon. They never make the diagnosis. The calcium and PTH do that.'] },
+        { id: 'board', emoji: '📋', name: 'Rotation Board', obj: true, x: 17, y: 20.6, act: { type: 'days' },
+          lines: ['The full 14-day rotation schedule, briefings, and scores.'] },
+        { id: 'elevator', emoji: '🛗', name: 'Elevator', obj: true, x: 20, y: 21.4, act: { type: 'elevator' },
+          lines: ['Each floor holds one day of the rotation. The ED, ICU, pharmacy, and guild hall are on Floor 1.'] }
+      ]
     }
   },
 
