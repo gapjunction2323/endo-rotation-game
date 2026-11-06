@@ -24,6 +24,7 @@ frame.style.cssText = 'width:420px;height:800px';
 frame.src = 'netmock.html';
 document.body.appendChild(frame);
 
+// once: the welcome-screen tests below reload the frame, which must not restart the suite.
 frame.addEventListener('load', async () => {
   const W = frame.contentWindow;
   const doc = () => W.document;
@@ -213,12 +214,59 @@ frame.addEventListener('load', async () => {
     btn('Use cloud save', $('#modal')).click();
     await sleep(100);
     check('cloud save loaded', saved().xp === 999);
+
+    // ---------- new browser: sign in from the welcome screen ----------
+    await sleep(4500);
+    const acctXp = mock().saves.find((s) => s.id === meId).data.xp;
+    const newbieId = W.crypto.randomUUID();
+    mock().users.push({ id: newbieId, email: 'newbie@test.dev', password: 'secret1' });
+    W.localStorage.setItem('endoNetMock.db', JSON.stringify(mock()));
+    async function freshBrowser() {
+      frame.src = 'about:blank';
+      await waitFor(() => frame.contentDocument && frame.contentDocument.URL === 'about:blank');
+      localStorage.removeItem('endoRotation.v1');
+      localStorage.removeItem('endoRotation.auth');
+      frame.src = 'netmock.html';
+      const ok = await waitFor(() => W.document.querySelector('.ob-signin [data-act="ob-show"]'), 6000);
+      W.addEventListener('error', (e) => errors.push(e.message));
+      W.addEventListener('unhandledrejection', (e) => errors.push('rejection: ' + (e.reason && e.reason.message)));
+      return !!ok;
+    }
+    check('welcome screen offers sign-in on a new browser', await freshBrowser());
+    btn('Sign in', $('.ob-signin')).click();
+    let wf = await waitFor(() => $('.ob-signin form'));
+    wf.elements.email.value = 'bender@test.dev';
+    wf.elements.password.value = 'wrongpass';
+    wf.requestSubmit();
+    await waitFor(() => $('.ob-signin .pf-err').textContent);
+    check('welcome sign-in rejects a bad password', $('.ob-signin .pf-err').textContent.includes("don't match") && !W.localStorage.getItem('endoRotation.auth'));
+    wf.elements.password.value = 'hunter22';
+    wf.requestSubmit();
+    await waitFor(() => $('#wc'), 6000);
+    check('welcome sign-in restores the account save without making a badge', !!$('#wc') && saved().profile.name === 'Bender' && saved().xp === acctXp);
+    check('no "which progress" prompt on an empty browser', $('#modal').classList.contains('hidden'));
+    await sleep(4500);
+    check('cloud save still intact after restoring', mock().saves.find((s) => s.id === meId).data.xp === acctXp);
+
+    check('second new browser shows the welcome screen', await freshBrowser());
+    btn('Sign in', $('.ob-signin')).click();
+    wf = await waitFor(() => $('.ob-signin form'));
+    wf.elements.email.value = 'newbie@test.dev';
+    wf.elements.password.value = 'secret1';
+    wf.requestSubmit();
+    await waitFor(() => /No saved progress/.test($('.ob-signin').textContent));
+    check('account with no save: told to set up a badge', /No saved progress/.test($('.ob-signin').textContent) && !!$('.profile-form'));
+    $('#pfName').value = 'Newbie';
+    $('.profile-form').requestSubmit();
+    await waitFor(() => mock().saves.some((s) => s.id === newbieId));
+    const nb = mock().saves.find((s) => s.id === newbieId);
+    check('account with no save: new badge saved to the account', !!nb && nb.data.profile.name === 'Newbie' && mock().players.some((p) => p.id === newbieId && p.name === 'Newbie'));
   } catch (e) {
     log.push('EXCEPTION: ' + e.message + '\n' + e.stack);
   }
   log.push('errors: ' + (errors.length ? errors.join(' | ') : 'none'));
   out.textContent = 'DONE\n' + log.join('\n');
-});
+}, { once: true });
 </script>
 </body>
 </html>

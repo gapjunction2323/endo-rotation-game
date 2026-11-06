@@ -105,13 +105,16 @@ window.EndoNet = {
     let pushTimer = 0;
     let pushing = false;
     let pushAgain = false;
+    // True while the cloud save is being compared with this device, or while the player picks one.
+    // Autosaves wait so they can't overwrite cloud progress before that choice is made.
+    let hold = false;
     function onSaved() {
       if (!signedIn()) return;
       clearTimeout(pushTimer);
       pushTimer = setTimeout(push, 4000);
     }
     async function push() {
-      if (!signedIn() || !S().profile) return;
+      if (!signedIn() || !S().profile || hold) return;
       if (pushing) { pushAgain = true; return; }
       pushing = true;
       clearTimeout(pushTimer);
@@ -138,22 +141,25 @@ window.EndoNet = {
     });
     async function syncCheck(askAlways) {
       setSync('pending');
-      const rows = await api(`/rest/v1/saves?select=data,saved_at&id=eq.${me()}`);
+      hold = true;
+      const release = () => { hold = false; };
+      let rows;
+      try { rows = await api(`/rest/v1/saves?select=data,saved_at&id=eq.${me()}`); } catch (e) { release(); throw e; }
       const cloud = rows && rows[0];
-      if (!cloud) return push();
+      if (!cloud) { release(); return push(); }
       let next;
-      try { next = G.parseSave(JSON.stringify(cloud.data)); } catch (e) { return push(); }
+      try { next = G.parseSave(JSON.stringify(cloud.data)); } catch (e) { release(); return push(); }
       const local = S();
-      if (progressKey(next) === progressKey(local)) { setSync('ok'); return; }
+      if (progressKey(next) === progressKey(local)) { release(); setSync('ok'); return; }
       const cloudAt = Date.parse(cloud.saved_at) || 0;
-      if (!askAlways && (local.lastSaved || 0) >= cloudAt) return push();
+      if (!askAlways && (local.lastSaved || 0) >= cloudAt) { release(); return push(); }
       setSync('idle');
       G.showModal(`<div class="big-emoji">☁️</div><h2>Which progress should this device use?</h2>
         <p class="debrief"><b>Cloud save:</b> ${G.saveSummary(next)}<br><span class="muted small">saved ${esc(new Date(cloudAt).toLocaleString())}</span></p>
         <p class="debrief"><b>This device:</b> ${G.saveSummary(local)}</p>
         <p class="muted small">The one you don't pick is overwritten.</p>`, [
-        { label: 'Keep this device', cls: 'btn', onClick: () => push() },
-        { label: 'Use cloud save', cls: 'btn primary', onClick: () => { G.replaceState(next); G.toast('☁️ Cloud save loaded', 'good'); } }
+        { label: 'Keep this device', cls: 'btn', onClick: () => { release(); push(); } },
+        { label: 'Use cloud save', cls: 'btn primary', onClick: () => { release(); G.replaceState(next); G.toast('☁️ Cloud save loaded', 'good'); } }
       ]);
     }
     async function ensurePlayer() {
@@ -164,9 +170,14 @@ window.EndoNet = {
     }
     async function afterSignIn(askAlways) {
       if (!S().profile) return;
-      await ensurePlayer();
+      hold = true;
+      try { await ensurePlayer(); } catch (e) { hold = false; throw e; }
       await syncCheck(askAlways);
       refreshFlags();
+    }
+    // A badge was just made on the welcome screen while signed in: compare with the cloud first.
+    function profileCreated() {
+      if (signedIn()) afterSignIn(true).catch((e) => setSync('err', e.message));
     }
 
     // ---------- auth ----------
@@ -502,6 +513,103 @@ window.EndoNet = {
           btns.forEach((b) => { b.disabled = false; });
         }
       };
+    }
+
+    // ---------- welcome screen: returning players restore their cloud save ----------
+    // A new browser has no badge yet, so it can't reach the Badge Office. This card signs in
+    // from the welcome screen and loads the account's saved progress directly.
+    let noCloudFor = null;
+    const authErrText = (msg) => {
+      if (/invalid login credentials/i.test(msg)) return "That email and password don't match an account.";
+      if (/email not confirmed/i.test(msg)) return 'Confirm your email first (check your inbox), then sign in.';
+      return msg;
+    };
+    async function restoreFromCloud() {
+      const rows = await api(`/rest/v1/saves?select=data,saved_at&id=eq.${me()}`);
+      const cloud = rows && rows[0];
+      let next = null;
+      if (cloud) { try { next = G.parseSave(JSON.stringify(cloud.data)); } catch (e) { next = null; } }
+      if (!next || !next.profile) { noCloudFor = me(); return 'none'; }
+      if (S().profile) return 'skip';
+      const load = () => {
+        G.replaceState(next);
+        G.toast(`☁️ Welcome back, ${drName(next.profile)}. Progress restored.`, 'good');
+        afterSignIn(false).catch((e) => setSync('err', e.message));
+      };
+      const local = S();
+      if (!(local.xp > 0 || Object.keys(local.days || {}).length)) { load(); return 'restored'; }
+      G.showModal(`<div class="big-emoji">☁️</div><h2>Which progress should this device use?</h2>
+        <p class="debrief"><b>Your account:</b> ${G.saveSummary(next)}<br><span class="muted small">saved ${esc(new Date(Date.parse(cloud.saved_at) || Date.now()).toLocaleString())}</span></p>
+        <p class="debrief"><b>This device:</b> ${G.saveSummary(local)}</p>
+        <p class="muted small">The one you don't pick is overwritten.</p>`, [
+        { label: 'Keep this device', cls: 'btn' },
+        { label: 'Use account progress', cls: 'btn primary', onClick: load }
+      ]);
+      return 'asked';
+    }
+    function renderWelcome(box, errMsg) {
+      if (!configured || !box) return;
+      if (sess) return welcomeSignedIn(box);
+      box.innerHTML = `<p class="ob-si-lead"><b>🪪 Played before?</b> Sign in to pick up your saved progress on this device.</p>
+        <div class="ob-si-body"><button class="btn primary" type="button" data-act="ob-show">Sign in</button></div>`;
+      const body = box.querySelector('.ob-si-body');
+      const showForm = () => {
+        body.innerHTML = `<form class="net-form" novalidate>
+            <label>Email<input type="email" name="email" autocomplete="email" required></label>
+            <label>Password<input type="password" name="password" autocomplete="current-password" required></label>
+            <div class="pf-err" aria-live="polite"></div>
+            <button class="btn primary" type="submit">Sign in and restore progress</button>
+          </form>`;
+        const form = body.querySelector('form');
+        const err = form.querySelector('.pf-err');
+        const submit = form.querySelector('button');
+        form.onsubmit = async (e) => {
+          e.preventDefault();
+          const email = form.elements.email.value.trim();
+          const password = form.elements.password.value;
+          err.textContent = '';
+          if (!/^\S+@\S+\.\S+$/.test(email)) { err.textContent = 'Enter a valid email.'; return; }
+          if (!password) { err.textContent = 'Enter your password.'; return; }
+          submit.disabled = true;
+          submit.textContent = 'Signing in…';
+          try {
+            const d = await raw('/auth/v1/token?grant_type=password', { method: 'POST', body: { email, password } });
+            storeSess(toSess(d));
+          } catch (ex) {
+            if (!box.isConnected) return;
+            err.textContent = authErrText(ex.message);
+            submit.disabled = false;
+            submit.textContent = 'Sign in and restore progress';
+            return;
+          }
+          G.toast('🪪 Signed in', 'good');
+          if (box.isConnected) welcomeSignedIn(box);
+        };
+        return form;
+      };
+      body.querySelector('[data-act="ob-show"]').onclick = () => showForm().elements.email.focus();
+      if (errMsg) showForm().querySelector('.pf-err').textContent = errMsg;
+    }
+    function welcomeSignedIn(box) {
+      box.innerHTML = `<p class="ob-si-lead">🪪 Signed in as <b>${esc(sess.user.email || '')}</b></p>
+        <p class="small" data-ob-msg>Looking for your saved progress…</p>
+        <div class="row"><button class="btn ghost" type="button" data-act="ob-out">Sign out</button></div>`;
+      const msg = box.querySelector('[data-ob-msg]');
+      box.querySelector('[data-act="ob-out"]').onclick = () => { signOut(); renderWelcome(box); };
+      const none = () => { msg.textContent = 'No saved progress on this account yet. Set up your badge below, and it will save to your account from now on.'; };
+      if (noCloudFor === me()) return none();
+      restoreFromCloud().then((r) => {
+        if (!box.isConnected) return;
+        if (r === 'none') none();
+        else if (r === 'asked') msg.textContent = "If you keep this device's progress, set up your badge below to continue.";
+      }).catch((e) => {
+        if (!box.isConnected) return;
+        if (!sess) return renderWelcome(box, e.message);
+        msg.innerHTML = `⚠️ ${esc(e.message)}`;
+        const retry = G.el('<button class="btn" type="button">Try again</button>');
+        retry.onclick = () => welcomeSignedIn(box);
+        box.querySelector('.row').prepend(retry);
+      });
     }
 
     // ---------- Guild Hall ----------
@@ -1040,6 +1148,8 @@ window.EndoNet = {
       others: othersList,
       hud,
       statusLine: syncText,
+      renderWelcome,
+      profileCreated,
       views: { online: viewOnline, guild: viewGuild, duels: viewDuels, market: viewMarket, hiscores: viewHiscores }
     };
   }

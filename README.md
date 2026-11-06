@@ -42,7 +42,7 @@ Accounts, cloud sync, guilds with chat and a weekly raid boss, quiz duels, and a
 
 Projects set up before floors existed: run `supabase/add-floors.sql` in the SQL Editor once so residents only see players on the same floor. Until then the game falls back to the old presence call and shows everyone on every floor.
 
-Residents sign in at the Badge Office in the lobby (or the 🌐 button). Signed-in players see each other walking the hospital.
+Residents sign in at the Badge Office in the lobby (or the 🌐 button). Signed-in players see each other walking the hospital. On a new phone or browser, residents can sign in right from the welcome screen, which loads their saved progress without making a new badge.
 
 Coins, gear, and XP live in each player's own save. The server enforces the shared parts (guild membership, raid HP and daily attack limits, duel scores, market sales) but trusts each client's inventory, which is fine for a class of friends but not for a public game.
 

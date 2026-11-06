@@ -487,15 +487,17 @@
 
   function viewOnboarding() {
     const hasProgress = state.xp > 0 || Object.keys(state.days).length > 0;
+    const online = !!(NET && NET.configured);
     app.innerHTML = `
       <section class="onboard">
         <div class="eyebrow">⚕️ Operation Homeostasis</div>
         <h1>Welcome, resident</h1>
         <p class="muted">Before your first consult, set up your badge for the 14-day endocrine rotation.</p>
+        ${online ? '<div class="card ob-signin"></div>' : ''}
         ${hasProgress ? `<div class="card ob-keep">✅ Your existing progress (<b>${state.xp} XP</b>) is safe. Just add a profile to continue.</div>` : ''}
         <div class="card">${profileForm(null, 'Start rotation →')}</div>
         <details class="card ob-import">
-          <summary>Moving from another device or browser? Import a save</summary>
+          <summary>${online ? 'No account? Import a save file instead' : 'Moving from another device or browser? Import a save'}</summary>
           <p class="muted small">Paste a save code or choose an exported file.</p>
           ${importWidget()}
         </details>
@@ -504,8 +506,10 @@
       state.profile = { name, avatar, createdAt: Date.now() };
       save();
       route();
+      if (NET) NET.profileCreated();
     });
     wireImport(app.querySelector('.ob-import'));
+    if (online) NET.renderWelcome(app.querySelector('.ob-signin'));
   }
 
   function viewSettings() {
@@ -519,7 +523,9 @@
       <div class="card" id="backup">
         <h3>Saving &amp; backup</h3>
         ${saveNote()}
-        <p class="muted small">Progress lives in this browser on this device. iPhone home-screen apps and Safari keep separate storage, so use export/import to move between them.</p>
+        <p class="muted small">${NET && NET.configured
+          ? 'Progress saves in this browser. Sign in under <b>Account &amp; cloud sync</b> and it also saves to your account, so you can sign in on any device and pick up where you left off. Export/import still works as a backup.'
+          : 'Progress lives in this browser on this device. iPhone home-screen apps and Safari keep separate storage, so use export/import to move between them.'}</p>
         <div class="row">
           <button class="btn" data-act="export-file">⬇️ Export progress</button>
           <button class="btn" data-act="copy-code">📋 Copy save code</button>

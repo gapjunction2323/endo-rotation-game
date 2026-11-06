@@ -107,6 +107,9 @@ main { max-width: 720px; margin: 0 auto; padding: 14px 14px calc(40px + var(--sa
 .onboard h1 { font-size: 1.8rem; margin-top: .3rem; }
 .ob-keep { border-color: #166534; color: #bbf7d0; }
 .ob-import summary { cursor: pointer; font-weight: 600; color: var(--accent-2); }
+.ob-signin { border-color: var(--accent-2); }
+.ob-si-lead { margin: 0 0 10px; }
+.ob-signin .net-form label:first-child { margin-top: 0; }
 .pf-preview { display: flex; align-items: center; gap: 14px; padding: 12px; border-radius: 12px; background: var(--panel-2); border: 1px solid var(--line); }
 .pf-av { flex: none; width: 64px; height: 64px; display: grid; place-items: center; font-size: 2.3rem; border-radius: 50%; background: var(--bg); border: 2px solid var(--accent); }
 .pf-name { font-size: 1.2rem; font-weight: 800; word-break: break-word; }
